@@ -26,23 +26,19 @@ public class FileSnapshot {
      *微信文件备份至app根目录下,计算对应的MD5值存入SharePreference
      * @param kindCmd
      * @param context
-     * @param arrayListFiles
      * @param srcFile
      * @param mHandler
      */
-    public static void getFileList(int kindCmd,Context context,ArrayList<File> arrayListFiles,File srcFile,Handler mHandler) {
-        if(!srcFile.canRead()||!srcFile.canWrite()||!srcFile.canExecute()) {
-            CustomRooter.setFileMode("chmod 777 " + srcFile.getAbsolutePath());
-        }
+    public static void getFileList(int kindCmd,Context context,File srcFile,Handler mHandler) {
+       // CustomRooter.setFileMode("chmod 777 "+srcFile.getAbsolutePath());
         if(srcFile.canRead()) {
             System.out.println(srcFile.getAbsolutePath());
             if (srcFile.isDirectory()) {
                 File[] files = srcFile.listFiles();
                 for (int i = 0; i < files.length; i++) {
-                    getFileList(kindCmd,context,arrayListFiles, files[i], mHandler);
+                    getFileList(kindCmd,context, files[i], mHandler);
                 }
             } else {
-                arrayListFiles.add(srcFile);
                 if(kindCmd==MainActivity.BACKUP_CMD) {
                     backUpFile(context, srcFile);
                     //storeToSharedPreference(context, srcFile.getAbsolutePath(), getFileMD5(srcFile));
@@ -59,7 +55,8 @@ public class FileSnapshot {
                 }
             }
         }
-        CustomRooter.setFileMode("chmod 771 "+srcFile.getAbsolutePath());
+        //CustomRooter.setFileMode("chmod 701 "+srcFile.getAbsolutePath());
+        //System.out.println(srcFile.getAbsolutePath());
     }
     /**
      * 将当前浏览到的微信文件备份到app的目录下/data/data/packageName/fileRead.getAbsolutePath

@@ -91,10 +91,8 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         if(Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)){
-                            //File fileRead = new File("/storage/emulated/0/tencent/MicroMsg/");//手机上的内置SD卡目录
                             File file = new File("/data/data/com.tencent.mm");
-                            ArrayList<File> arrayListFile = new ArrayList<File>();
-                            FileSnapshot.getFileList(BACKUP_CMD,MainActivity.this,arrayListFile,file,mHandler);
+                            FileSnapshot.getFileList(BACKUP_CMD,MainActivity.this,file,mHandler);
                             Message message = mHandler.obtainMessage();
                             message.what = BUTTON_UPDATE_END;
                             mHandler.sendMessage(message);

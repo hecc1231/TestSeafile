@@ -12,22 +12,15 @@ import java.io.OutputStream;
  */
 public class CustomRooter {
     public static void setFileMode(String cmd) {
-        Runtime runtime = null;
         Process process=null;
         try {
-            if (runtime==null) {
-                runtime=Runtime.getRuntime();
-                process = runtime.exec("su");
-            }
-            InputStream inputStream = process.getInputStream();
-            OutputStream outputStream = process.getOutputStream();
-            cmd = cmd + "\n";
-            outputStream.write(cmd.getBytes());
-            outputStream.close();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-            reader.close();
-            inputStream.close();
+            process = Runtime.getRuntime().exec("su");
+            DataOutputStream os = new DataOutputStream(process.getOutputStream());
+            os.writeBytes(cmd+"\n");
+            os.writeBytes("exit\n");
+            os.flush();
             process.destroy();
+            System.out.println("rooted");
         } catch (IOException e) {
             e.printStackTrace();
         }
