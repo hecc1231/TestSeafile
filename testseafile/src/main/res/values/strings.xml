@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">TestSeafile</string>
     <string name="action_settings">Settings</string>
+    <string name="default_user_name">hcc_public@126.com</string>
+    <string name="default_ip_address">10.50.138.135</string>
+    <string name="default_user_pwd">beijing520</string>
+    <string name="str_sync">Sync</string>
 </resources>

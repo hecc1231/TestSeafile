@@ -14,6 +14,30 @@
         <!--android:layout_height="wrap_content"-->
         <!--android:id="@+id/btnRoot"-->
         <!--android:text="获取ROOT权限"/>-->
+    <EditText
+        android:hint="Input ipAddress"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/editTextIpAdress"
+        android:text="@string/default_ip_address"/>
+    <EditText
+        android:hint="Input userName"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/default_user_name"
+        android:id="@+id/editTextUserName"/>
+    <EditText
+        android:hint="Input password"
+        android:password="true"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/default_user_pwd"
+        android:id="@+id/editTextPassword"/>
+    <Button
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/btnLogin"
+        android:text="sign in"/>
     <TextView
         android:singleLine="true"
         android:ellipsize="start"
@@ -21,36 +45,15 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:id="@+id/tvFileScanner"
-        android:hint="扫描文件清单"/>
+        android:hint="scan fileList"/>
     <Button
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:id="@+id/btnSnapshot"
-        android:text="点击保存文件快照"/>
-    <EditText
-        android:hint="Input ipAddress"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/editTextIpAdress"/>
-    <EditText
-        android:hint="Input fileDir"
-        android:password="true"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/editTextFileDir"/>
-    <EditText
-        android:hint="Input userName"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/editTextUserName"/>
-    <EditText
-        android:hint="Input password"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/editTextPassword"/>
+        android:text="Back"/>
     <Button
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/btnLogin"
-        android:text="login in"/>
+        android:id="@+id/btnSync"
+        android:text="Sync"/>
 </LinearLayout>

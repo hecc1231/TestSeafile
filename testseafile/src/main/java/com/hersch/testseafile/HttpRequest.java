@@ -18,13 +18,19 @@ import java.util.List;
 import java.util.Map;
 
 public class HttpRequest {
-    static String strIpAddress="192.168.1.22";//"10.108.20.142";//"192.168.1.5";//
+    static String strIpAddress="10.50.138.135";
     public static byte[] m_binArray = null;
 
+    /**
+     *
+     * @param url
+     * @param param
+     * @param strCookie(包含登录后的token和sessionid,每个包必须携带作为认证信息)
+     * @return
+     */
     public static String sendGet(String url, String param, String strCookie) {
         String result = "";
         BufferedReader in = null;
-
         try {
             String urlNameString = url + "?" + param;
             URL realUrl = new URL(urlNameString);
@@ -65,7 +71,6 @@ public class HttpRequest {
     public static byte[] downloadFile(String url, String param, String strCookie) {
         String result = "";
         BufferedReader in = null;
-
         try {
             String urlNameString = url + "?" + param;
             URL realUrl = new URL(urlNameString);
@@ -86,7 +91,6 @@ public class HttpRequest {
             m_binArray = new byte[Integer.valueOf(length)];
             BufferedInputStream input =new BufferedInputStream(connection.getInputStream());
             input.read(m_binArray);
-
         } catch (Exception e) {
             System.out.println("发送GET请求出现异常！" + e);
             e.printStackTrace();
@@ -169,7 +173,6 @@ public class HttpRequest {
         String result = "";
         BufferedReader in = null;
         String strParamValue = "";
-
         try {
             String urlNameString = url;
             URL realUrl = new URL(urlNameString);
@@ -220,13 +223,11 @@ public class HttpRequest {
         }
         return strParamValue;
     }
-
     public static String sendPost(String url, String param, String strCookie) {
         OutputStreamWriter out = null;
         BufferedReader in = null;
         String result = "";
         String strParamValue = "";
-
         try {
             URL realUrl = new URL(url);
             HttpURLConnection connection = (HttpURLConnection)realUrl.openConnection();
@@ -255,9 +256,7 @@ public class HttpRequest {
             if (redirect) {
                 String newUrl = connection.getHeaderField("Location");
                 String cookies = connection.getHeaderField("Set-Cookie");
-
                 System.out.println("Redirect to URL : " + newUrl);
-
             }
             String cookieval = connection.getHeaderField("set-cookie");
             strParamValue += cookieval.substring(0,cookieval.indexOf(";")+1);
@@ -285,10 +284,8 @@ public class HttpRequest {
                 ex.printStackTrace();
             }
         }
-
         return strParamValue;
     }
-
     public static String sendPost1(String url, String param, String strToken, String strCookie,String strContentType) {
         OutputStreamWriter out = null;
         BufferedReader in = null;
@@ -348,7 +345,7 @@ public class HttpRequest {
         try {
             String urlNameString = url;
             URL realUrl = new URL(urlNameString);
-            HttpURLConnection  connection = (HttpURLConnection)realUrl.openConnection();
+            HttpURLConnection connection = (HttpURLConnection)realUrl.openConnection();
             connection.setRequestProperty("accept", "application/json, text/javascript, */*; q=0.01");
             connection.setRequestProperty("X-Access-Control-Request-Method-With", "POST");
             connection.setRequestProperty("Access-Control-Request-Headers", "accept, content-type");
@@ -392,15 +389,15 @@ public class HttpRequest {
         PrintWriter out = null;
         BufferedReader in = null;
         String result = "";
-
         System.out.println("************** URL:" +url);
         try {
             URL realUrl = new URL(url);
             URLConnection connection = realUrl.openConnection();
-            connection.setRequestProperty("accept", "application/json, text/javascript, */*; q=0.01");
-            connection.setRequestProperty("connection", "Keep-Alive");
+            connection.setRequestProperty("Accept", "application/json, text/javascript, */*; q=0.01");
+            connection.setRequestProperty("Connection", "Keep-Alive");
             connection.setRequestProperty("Content-Length", String.valueOf(param.length));
-            connection.setRequestProperty("Cookie", "sessionid=ys8oujbkzs1t0ax3on31eiffj1p3128t; csrftoken=W7kbDde9L0o5IlCOTUSrMZh5oBQLSHte");
+           //connection.setRequestProperty("Cookie", "sessionid=ys8oujbkzs1t0ax3on31eiffj1p3128t; csrftoken=W7kbDde9L0o5IlCOTUSrMZh5oBQLSHte");
+            connection.setRequestProperty("Cookie",strCookie);
             connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=----WebKitFormBoundaryWwA1f0fjjPetVzQa");
             connection.setRequestProperty("Referer", "http://"+strIpAddress+":8000/");
             connection.setRequestProperty("Origin", "http://"+strIpAddress+":8000");
@@ -410,11 +407,9 @@ public class HttpRequest {
             connection.setDoOutput(true);
             connection.setDoInput(true);
             OutputStream outStream = connection.getOutputStream();
-
             outStream.write(param);
             outStream.flush();
             outStream.close();
-
             in = new BufferedReader(
                     new InputStreamReader(connection.getInputStream()));
             String line;
@@ -440,6 +435,5 @@ public class HttpRequest {
         }
         return result;
     }
-
 }
 

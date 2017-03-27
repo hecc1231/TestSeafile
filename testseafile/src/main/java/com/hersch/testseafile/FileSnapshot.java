@@ -22,132 +22,79 @@ import java.util.List;
  * Created by Hersch on 2017/2/9.
  */
 public class FileSnapshot {
+    public static int fileSize = 0;
+    public static int differSize = 0;
     /**
-     *微信文件备份至app根目录下,计算对应的MD5值存入SharePreference
-     * @param kindCmd
-     * @param context
-     * @param srcFile
-     * @param mHandler
-     */
-    public static void getFileList(int kindCmd,Context context,File srcFile,Handler mHandler) {
-       // CustomRooter.setFileMode("chmod 777 "+srcFile.getAbsolutePath());
-        if(srcFile.canRead()) {
-            System.out.println(srcFile.getAbsolutePath());
-            if (srcFile.isDirectory()) {
-                File[] files = srcFile.listFiles();
-                for (int i = 0; i < files.length; i++) {
-                    getFileList(kindCmd,context, files[i], mHandler);
-                }
-            } else {
-                if(kindCmd==MainActivity.BACKUP_CMD) {
-                    backUpFile(context, srcFile);
-                    //storeToSharedPreference(context, srcFile.getAbsolutePath(), getFileMD5(srcFile));
-                    Message msg = mHandler.obtainMessage();
-                    System.out.println(srcFile.getAbsolutePath());
-                    msg.what = MainActivity.FILE_UPDATE_MSG;
-                    Bundle bundle = new Bundle();
-                    bundle.putString("filename", srcFile.getPath());
-                    msg.setData(bundle);
-                    mHandler.sendMessage(msg);
-                }
-                else{//比对指令
-
-                }
-            }
-        }
-        //CustomRooter.setFileMode("chmod 701 "+srcFile.getAbsolutePath());
-        //System.out.println(srcFile.getAbsolutePath());
-    }
-    /**
-     * 将当前浏览到的微信文件备份到app的目录下/data/data/packageName/fileRead.getAbsolutePath
-     * @param context
-     * @param srcFile
-     */
-    public static void backUpFile(Context context,File srcFile){
-        String strParentPath = "/data/data/"+context.getPackageName()+srcFile.getParent();
-        new File(strParentPath).mkdirs();//创建该文件以上的目录
-        File destFile = new File(strParentPath+"/"+srcFile.getName());
-        if(destFile.exists()){
-            destFile.delete();
-        }
-        try {
-            destFile.createNewFile();
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.out.print("create File failed!");
-        }
-        InputStream inStream = null;
-        try {
-            inStream = new FileInputStream(srcFile);
-            FileOutputStream outStream = new FileOutputStream(destFile);
-            byte[] buf = new byte[1024];
-            int byteRead = 0;
-            while ((byteRead = inStream.read(buf)) != -1) {
-                outStream.write(buf, 0, byteRead);
-            }
-            outStream.flush();
-            outStream.close();
-            inStream.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.out.print("file copy failed!");
-        }
-
-    }
-    public static void storeToSharedPreference(Context context,String strFilePath,String strMd5){
-        SharedPreferences sharedPreferences = context.getSharedPreferences("backupMd5",Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        String strTempMd5= sharedPreferences.getString(strFilePath, "null");//null代表返回的缺省值
-        if(strTempMd5.equals("null")){
-            //说明文件的MD5还未存入SharedPreference，用于初始化md5文件
-            editor.putString(strFilePath,strMd5);
-        }
-        else if(!strTempMd5.equals(strMd5)){
-            //说明文件被更改,需要做个记录比如存入另外一个文件
-
-        }
-    }
-    /**
-     * 判断当前微信进程是否运行
+     * 遍历微信文件备份至app根目录下,计算对应的MD5值存入SharePreference
      *
      * @param context
-     * @param packageName
-     * @return
+     * @param srcFile
      */
-    public static boolean isProcessRunning(Context context, String packageName) {
-        ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-        List<ActivityManager.RunningAppProcessInfo> list = activityManager.getRunningAppProcesses();
-        for (int i = 0; i < list.size(); i++) {
-            if (list.get(i).processName.equals(packageName)) {
-                return true;
+    public static void getFileList(Context context, File srcFile) {
+        if (srcFile.canRead()) {
+            System.out.println(srcFile.getAbsolutePath());
+            if (srcFile.isDirectory()) {
+                createDirToCloud(context,srcFile);
+                File[] files = srcFile.listFiles();
+                for (int i = 0; i < files.length; i++) {
+                    getFileList(context, files[i]);
+                }
+            } else {
+                fileSize++;
+                storeToSharedPreference(context, srcFile);
+                System.out.println(srcFile.getAbsolutePath());
             }
         }
-        return false;
     }
 
-    public static String getFileMD5(File file) {
-        MessageDigest digest = null;
-        FileInputStream in = null;
-        byte buffer[] = new byte[1024];
-        int len;
-        try {
-            digest = MessageDigest.getInstance("MD5");
-            in = new FileInputStream(file);
-            while ((len = in.read(buffer, 0, 1024)) != -1) {
-                digest.update(buffer, 0, 1024);
-            }
-            in.close();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+    /**
+     * 在云端建立目录
+     * @param context
+     * @param srcFile
+     */
+    public static void createDirToCloud(Context context,File srcFile){
+        SharedPreferences sharedPreferences = context.getSharedPreferences("dirList", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        String strTempMd5= sharedPreferences.getString(srcFile.getAbsolutePath(), "null");//null代表返回的缺省值
+        if(strTempMd5.equals("null")){
+            MainActivity.createDiretory(srcFile.getAbsolutePath());
+            editor.putString(srcFile.getAbsolutePath(), srcFile.getAbsolutePath());
+            editor.commit();
         }
-        BigInteger bigInt = new BigInteger(1, digest.digest());
-        return bigInt.toString(16);
     }
-
+    /**
+     * 将需要备份的文件以键值对形式存入SharedPrerence
+     * @param context
+     * @param srcFile
+     */
+    public static void storeToSharedPreference(Context context,File srcFile){
+        String strFilePath = srcFile.getAbsolutePath();
+        String strMd5 = common.getFileMD5(srcFile);
+        SharedPreferences sharedPrefsBackupMd5 = context.getSharedPreferences("backupMd5", Context.MODE_PRIVATE);
+        SharedPreferences sharedPrefsChange = context.getSharedPreferences("changeMd5",Context.MODE_PRIVATE);
+        SharedPreferences.Editor editorBackup = sharedPrefsBackupMd5.edit();
+        SharedPreferences.Editor editorChange = sharedPrefsChange.edit();
+        editorChange.commit();
+        String strTempMd5= sharedPrefsBackupMd5.getString(strFilePath, "null");//null代表返回的缺省值
+        if(strTempMd5.equals("null")){
+            //upload File
+            MainActivity.uploadFile("upload",srcFile.getAbsolutePath(),
+                    srcFile.getName(),srcFile.getParent());
+            strMd5 = common.getFileMD5(srcFile);
+            editorBackup.putString(strFilePath, strMd5);
+            editorBackup.commit();
+            differSize++;
+        }
+        else if(!strTempMd5.equals(strMd5)){
+            //update File
+            MainActivity.uploadFile("update",srcFile.getAbsolutePath(),
+                    srcFile.getName(),srcFile.getParent());
+            strMd5 = common.getFileMD5(srcFile);
+            editorBackup.putString(strFilePath, strMd5);
+            editorBackup.commit();
+            editorChange.putString(strFilePath, strMd5);//将更改的文件列表存入changeMd5,,该文件用作以后同步的文件清单用
+            editorChange.commit();
+            differSize++;
+        }
+    }
 }
