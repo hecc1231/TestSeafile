@@ -4,6 +4,7 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
 import android.os.*;
 import android.os.Process;
 import android.support.design.widget.FloatingActionButton;
@@ -22,7 +23,10 @@ import android.widget.Toast;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity {
     static String strToken = "";
@@ -79,7 +83,8 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(MainActivity.this, "WeChat has been killed", Toast.LENGTH_SHORT).show();
             }
         });
-        builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {@Override
+        builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
+            @Override
             public void onClick(DialogInterface dialog, int which) {
                 dialog.dismiss();
             }
@@ -133,15 +138,39 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Context context = getApplicationContext();
-                if (!CustomProcess.isProcessRunning(context)||!CustomProcess.isServiceRunning(context)) {
+                if (!CustomProcess.isProcessRunning(context) || !CustomProcess.isServiceRunning(context)) {
                     createDialog();//弹出确认框
-                }
-                else{
+                    syncFileToLocal();
+                } else {
                     System.out.println("ready to sync");
                     //同步
                 }
             }
         });
+    }
+    void syncFileToLocal(){
+        final Context context = getApplicationContext();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                File file = new File("/data/data/"+getPackageName()+"/shared_prefs/changeMd5.xml");
+                if(!file.exists()) {
+                    System.out.println("changeMd5 is not exist");
+                    String strfileDir = "/data/data/" + getPackageName() + "/shared_prefs/changeMd5.xml";
+                    downloadFile(strfileDir, "/changeMd5.xml");
+                }
+                SharedPreferences sharedPrefs = context.getSharedPreferences("changeMd5", Context.MODE_PRIVATE);
+                Map<String,?> strFileMap = sharedPrefs.getAll();
+                for(String key:strFileMap.keySet()){
+                    //创建父级目录以上的文件夹,因为在当前APP的目录下没有和微信对应的MicroMsg等目录
+                    String strLocalPath = "/data/data/"+getPackageName()+key;
+                    int i = strLocalPath.lastIndexOf("/");
+                    String strParentPath = strLocalPath.substring(0,i);
+                    new File(strParentPath).mkdirs();
+                    downloadFile(strLocalPath,key);
+                }
+            }
+        }).start();
     }
     /**
      * 每次备份文件后将期间以及以前发生变化的文件都存入sharedPrefs并上传至云平台
@@ -354,11 +383,11 @@ public class MainActivity extends AppCompatActivity {
     /**
      * 下载文件存放在源文件路径下命名为.backup文件
      * @param strFileDir
-     * @param strFileName
+     * @param strFileCloudPath
      */
-    public static void downloadFile(String strFileDir, String strFileName) {
+    public static void downloadFile(String strFileDir, String strFileCloudPath) {
         byte[] fileArray = HttpRequest.downloadFile("http://" + strIpAddress
-                        + ":8000/lib/" + strRootId + "/file/" + strFileName, "dl=1",
+                        + ":8000/lib/" + strRootId + "/file" + strFileCloudPath, "dl=1",
                 strCookie);///file后面应该跟云平台对应的路径名,当前所下载的文件是在根目录下
         common.writeFile(strFileDir + ".backup", fileArray);
     }
