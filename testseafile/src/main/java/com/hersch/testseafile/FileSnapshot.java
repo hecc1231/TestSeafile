@@ -57,7 +57,7 @@ public class FileSnapshot {
         SharedPreferences.Editor editor = sharedPreferences.edit();
         String strTempMd5= sharedPreferences.getString(srcFile.getAbsolutePath(), "null");//null代表返回的缺省值
         if(strTempMd5.equals("null")){
-            MainActivity.createDiretory(srcFile.getAbsolutePath());
+            MainActivity.createFileToCloud(srcFile.getAbsolutePath());
             editor.putString(srcFile.getAbsolutePath(), srcFile.getAbsolutePath());
             editor.commit();
         }

@@ -53,7 +53,6 @@ public class MainActivity extends AppCompatActivity {
     Button btnSync;
     Button btnLogin;
     Button btnSnapshot;
-    Button btnFileRoot;
     TextView tvFileScanner;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,44 +61,19 @@ public class MainActivity extends AppCompatActivity {
         findView();
     }
     void initDataDirectory(){
-        File dataFile = new File("/data");
-        FileSnapshot.createDirToCloud(MainActivity.this, dataFile);
-        File data2File = new File("/data/data");
-        FileSnapshot.createDirToCloud(MainActivity.this, data2File);
-        File data3File = new File("/data/data/com.tencent.mm");
-        FileSnapshot.createDirToCloud(MainActivity.this, data3File);
-    }
-
-    /**
-     * 弹出确认关闭微信的窗口
-     */
-    void createDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-        builder.setMessage("检测到微信正在运行,确认退出微信开始同步数据吗？");
-        builder.setTitle("提示");
-        builder.setPositiveButton("确认", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
-                CustomProcess.kill(processName);
-                btnSync.setText("同步数据中....");
-                btnSync.setEnabled(false);
-                syncFileToLocal();
-            }
-        });
-        builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
-            }
-        });
-        builder.create().show();
+        createInitDirectory("/data");
+        createInitDirectory("/data/data");
+        createInitDirectory("/data/data/com.tencent.mm");
+        createInitDirectory("/storage");
+        createInitDirectory("/storage/emulated");
+        createInitDirectory("/storage/emulated/0");
+        createInitDirectory("/storage/emulated/0/Tencent");
     }
     void findView() {
         listTraverseFile = new ArrayList<String>();
         listTraverseFile.add("/data/data/com.tencent.mm/shared_prefs");
         listTraverseFile.add("/data/data/com.tencent.mm/MicroMsg");
-        listTraverseFile.add("/data/media/0/Tencent/MicroMsg");
+        //listTraverseFile.add("/storage/emulated/0/Tencent/MicroMsg");
         tvFileScanner = (TextView)findViewById(R.id.tvFileScanner);
         editTextIpAddress = (EditText) findViewById(R.id.editTextIpAdress);
         editTextUserName = (EditText) findViewById(R.id.editTextUserName);
@@ -127,6 +101,7 @@ public class MainActivity extends AppCompatActivity {
                             initDataDirectory();
                             for (String s : listTraverseFile) {
                                 File file = new File(s);
+                                FileRooter.chmod(file.getAbsolutePath());
                                 FileSnapshot.getFileList(MainActivity.this, file);
                             }
                             syncSharedPrefsToCloud();
@@ -146,24 +121,62 @@ public class MainActivity extends AppCompatActivity {
                 if (!CustomProcess.isProcessRunning(context) || !CustomProcess.isServiceRunning(context)) {
                     createDialog();//弹出确认框
                 } else {
-                    syncFileToLocal();//同步到本地文件夹
+                   //syncFileToLocal();//同步到本地文件夹
+                   syncFileToMsg();
                 }
             }
         });
-        btnFileRoot = (Button)findViewById(R.id.btnChmod);
-        btnFileRoot.setOnClickListener(new View.OnClickListener() {
+    }
+    void createInitDirectory(String filePath){
+        File file = new File(filePath);
+        FileSnapshot.createDirToCloud(MainActivity.this, file);
+    }
+
+    /**
+     * 弹出确认关闭微信的窗口
+     */
+    void createDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+        builder.setMessage("检测到微信正在运行,确认退出微信开始同步数据吗？");
+        builder.setTitle("提示");
+        builder.setPositiveButton("确认", new DialogInterface.OnClickListener() {
             @Override
-            public void onClick(View v) {
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        String rootPath = "/data/data/com.tencent.mm/news";
-                        FileRooter.chmod(rootPath);
-                        FileRooter.getFileList(rootPath);
-                    }
-                }).start();
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                CustomProcess.kill(processName);
+                btnSync.setText("同步数据中....");
+                btnSync.setEnabled(false);
+                //syncFileToLocal();
+                syncFileToMsg();
             }
         });
+        builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+        builder.create().show();
+    }
+    void syncFileToMsg(){
+        final Context context = getApplicationContext();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                File file = new File("/data/data/"+getPackageName()+"/shared_prefs/changeMd5.xml");
+                if(!file.exists()) {
+                    System.out.println("changeMd5 is not exist");
+                    String strfileDir = "/data/data/" + getPackageName() + "/shared_prefs/changeMd5.xml";
+                    downloadFile(strfileDir, "/changeMd5.xml");
+                }
+                SharedPreferences sharedPrefs = context.getSharedPreferences("changeMd5", Context.MODE_PRIVATE);
+                Map<String,?> strFileMap = sharedPrefs.getAll();
+                for(String key:strFileMap.keySet()){
+                    downloadFile(key,key);
+                }
+                sendMsg(MSG_COMPLETE_SYNC);
+            }
+        }).start();
     }
     void syncFileToLocal(){
         final Context context = getApplicationContext();
@@ -415,7 +428,7 @@ public class MainActivity extends AppCompatActivity {
      * 创建文件的post包格式必须包含XCRSToken！！
      * %2F后跟文件夹名字代表在该文件夹下/dir
      */
-    public static void createDiretory(final String strFilePath){
+    public static void createFileToCloud(final String strFilePath){
                 int i1 = strFilePath.lastIndexOf("/");
                 String strParentPath = strFilePath.substring(0,i1+1);
                 String strFileName = strFilePath.substring(i1+1);
@@ -437,7 +450,7 @@ public class MainActivity extends AppCompatActivity {
                 case MSG_COMPLETE_SYNC:
                     btnSync.setEnabled(true);
                     btnSync.setText("同步");
-                    Toast.makeText(MainActivity.this,"数据同步完成",Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this,"微信数据同步完成",Toast.LENGTH_SHORT).show();
             }
         }
     };
