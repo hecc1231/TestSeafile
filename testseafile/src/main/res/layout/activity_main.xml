@@ -37,7 +37,7 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:id="@+id/btnLogin"
-        android:text="sign in"/>
+        android:text="登录"/>
     <TextView
         android:singleLine="true"
         android:ellipsize="start"
@@ -50,10 +50,15 @@
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:id="@+id/btnSnapshot"
-        android:text="Back"/>
+        android:text="备份数据"/>
     <Button
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:id="@+id/btnSync"
-        android:text="Sync"/>
+        android:text="同步数据"/>
+    <Button
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/btnChmod"
+        android:text="修改文件权限"/>
 </LinearLayout>

@@ -20,6 +20,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ public class MainActivity extends AppCompatActivity {
     static String strToken = "";
     static String strCookie = "";
     final static int MSG_COMPLETE_BACKUP = 1;
+    final static int MSG_COMPLETE_SYNC = 2;
     static String processName = "com.tencent.mm";
     static List<String>listTraverseFile;
     static String strIpAddress = "10.50.138.135";//"10.108.20.142";//
@@ -51,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
     Button btnSync;
     Button btnLogin;
     Button btnSnapshot;
+    Button btnFileRoot;
     TextView tvFileScanner;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,15 +75,16 @@ public class MainActivity extends AppCompatActivity {
      */
     void createDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-        builder.setMessage("检测到微信正在运行,确认退出微信吗？");
+        builder.setMessage("检测到微信正在运行,确认退出微信开始同步数据吗？");
         builder.setTitle("提示");
         builder.setPositiveButton("确认", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 dialog.dismiss();
-                ActivityManager mAm = (ActivityManager) getApplicationContext().getSystemService(Context.ACTIVITY_SERVICE);
                 CustomProcess.kill(processName);
-                Toast.makeText(MainActivity.this, "WeChat has been killed", Toast.LENGTH_SHORT).show();
+                btnSync.setText("同步数据中....");
+                btnSync.setEnabled(false);
+                syncFileToLocal();
             }
         });
         builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
@@ -95,6 +99,7 @@ public class MainActivity extends AppCompatActivity {
         listTraverseFile = new ArrayList<String>();
         listTraverseFile.add("/data/data/com.tencent.mm/shared_prefs");
         listTraverseFile.add("/data/data/com.tencent.mm/MicroMsg");
+        listTraverseFile.add("/data/media/0/Tencent/MicroMsg");
         tvFileScanner = (TextView)findViewById(R.id.tvFileScanner);
         editTextIpAddress = (EditText) findViewById(R.id.editTextIpAdress);
         editTextUserName = (EditText) findViewById(R.id.editTextUserName);
@@ -113,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 FileSnapshot.differSize = FileSnapshot.fileSize = 0;
-                btnSnapshot.setText("back up.....");
+                btnSnapshot.setText("数据备份中.....");
                 btnSnapshot.setEnabled(false);
                 if (listTraverseFile.size() > 0) {
                     new Thread(new Runnable() {
@@ -140,11 +145,23 @@ public class MainActivity extends AppCompatActivity {
                 Context context = getApplicationContext();
                 if (!CustomProcess.isProcessRunning(context) || !CustomProcess.isServiceRunning(context)) {
                     createDialog();//弹出确认框
-                    syncFileToLocal();
                 } else {
-                    System.out.println("ready to sync");
-                    //同步
+                    syncFileToLocal();//同步到本地文件夹
                 }
+            }
+        });
+        btnFileRoot = (Button)findViewById(R.id.btnChmod);
+        btnFileRoot.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        String rootPath = "/data/data/com.tencent.mm/news";
+                        FileRooter.chmod(rootPath);
+                        FileRooter.getFileList(rootPath);
+                    }
+                }).start();
             }
         });
     }
@@ -169,6 +186,7 @@ public class MainActivity extends AppCompatActivity {
                     new File(strParentPath).mkdirs();
                     downloadFile(strLocalPath,key);
                 }
+                sendMsg(MSG_COMPLETE_SYNC);
             }
         }).start();
     }
@@ -227,7 +245,9 @@ public class MainActivity extends AppCompatActivity {
      * 通过用户名和密码登录并且获得cookie和rootId
      */
     void getLoginInfo(){
-         new Thread(new Runnable() {
+        btnLogin.setEnabled(false);
+        btnLogin.setText("已登录");
+        new Thread(new Runnable() {
              @Override
              public void run() {
                  strCookie = HttpRequest.sendGetHeadItem("http://" + strIpAddress
@@ -411,8 +431,13 @@ public class MainActivity extends AppCompatActivity {
             switch (msg.what){
                 case MSG_COMPLETE_BACKUP:
                     btnSnapshot.setEnabled(true);
-                    btnSnapshot.setText("Back Up");
+                    btnSnapshot.setText("备份");
+                    Toast.makeText(MainActivity.this,"数据成功备份到云端",Toast.LENGTH_SHORT).show();
                     break;
+                case MSG_COMPLETE_SYNC:
+                    btnSync.setEnabled(true);
+                    btnSync.setText("同步");
+                    Toast.makeText(MainActivity.this,"数据同步完成",Toast.LENGTH_SHORT).show();
             }
         }
     };
