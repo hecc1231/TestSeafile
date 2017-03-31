@@ -34,7 +34,7 @@ public class FileSnapshot {
         if (srcFile.canRead()) {
             System.out.println(srcFile.getAbsolutePath());
             if (srcFile.isDirectory()) {
-                createDirToCloud(context,srcFile);
+                createDirectory(context, srcFile);
                 File[] files = srcFile.listFiles();
                 for (int i = 0; i < files.length; i++) {
                     getFileList(context, files[i]);
@@ -52,13 +52,13 @@ public class FileSnapshot {
      * @param context
      * @param srcFile
      */
-    public static void createDirToCloud(Context context,File srcFile){
+    public static void createDirectory(Context context,File srcFile) {
         SharedPreferences sharedPreferences = context.getSharedPreferences("dirList", Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
         String strTempMd5= sharedPreferences.getString(srcFile.getAbsolutePath(), "null");//null代表返回的缺省值
-        if(strTempMd5.equals("null")){
-            MainActivity.createFileToCloud(srcFile.getAbsolutePath());
-            editor.putString(srcFile.getAbsolutePath(), srcFile.getAbsolutePath());
+        if(strTempMd5.equals("null")) {
+            MainActivity.createDirToCloud(srcFile.getAbsolutePath());
+            editor.putString(srcFile.getAbsolutePath(),srcFile.getAbsolutePath());
             editor.commit();
         }
     }

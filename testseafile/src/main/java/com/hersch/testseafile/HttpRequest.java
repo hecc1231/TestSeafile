@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 public class HttpRequest {
-    static String strIpAddress="10.50.138.135";
+    public static String strIpAddress="192.168.137.1";
     public static byte[] m_binArray = null;
 
     /**

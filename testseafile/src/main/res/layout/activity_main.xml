@@ -56,4 +56,9 @@
         android:layout_height="wrap_content"
         android:id="@+id/btnSync"
         android:text="同步数据"/>
+    <Button
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/btnDelete"
+        android:text="删除"/>
 </LinearLayout>

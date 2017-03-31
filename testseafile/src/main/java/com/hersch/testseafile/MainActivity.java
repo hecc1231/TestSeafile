@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.os.*;
 import android.os.Process;
+import android.print.PrintJob;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
@@ -22,6 +23,7 @@ import android.widget.Toast;
 
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -34,9 +36,12 @@ public class MainActivity extends AppCompatActivity {
     static String strCookie = "";
     final static int MSG_COMPLETE_BACKUP = 1;
     final static int MSG_COMPLETE_SYNC = 2;
+    final static int MSG_UNSUCESS_NETWORK = 5;
+    final static int MSG_UNSUCCESS_LOGIN = 3;
+    final static int MSG_SUCCESS_LOGIN = 4;
     static String processName = "com.tencent.mm";
     static List<String>listTraverseFile;
-    static String strIpAddress = "10.50.138.135";//"10.108.20.142";//
+    static String strIpAddress = HttpRequest.strIpAddress;//"10.108.20.142";//
     static String strFirstFile = "------WebKitFormBoundaryWwA1f0fjjPetVzQa\r\nContent-Disposition: form-data; name=\"parent_dir\"\r\n\r\n";
     static String strTargetFile = "\r\n------WebKitFormBoundaryWwA1f0fjjPetVzQa\r\nContent-Disposition: form-data; name=\"target_file\"\r\n\r\n";
     static String strDirFile = "\r\n------WebKitFormBoundaryWwA1f0fjjPetVzQa\r\nContent-Disposition: form-data; name=\"file\"; filename=\"";
@@ -44,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
     static String strMiddleFile = "\"\r\nContent-Type: application/octet-stream\r\n\r\n";
     static String strRootId = "";
     public static byte[] m_binArray = null;
+    static String strCurrentPath = "/data/data/com.hersch.testseafile/";
     static String strFileDir = "/data/data/com.hersch.testseafile/data/data/com.tencent.mm/";
     static String strUserName = "hcc1231@126.com";
     static String strPassword = "beijing520";
@@ -51,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
     EditText editTextUserName;
     EditText editTextPassword;
     Button btnSync;
+    Button btnDelete;
     Button btnLogin;
     Button btnSnapshot;
     TextView tvFileScanner;
@@ -58,16 +65,46 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        FileRooter.chmod(strCurrentPath + "shared_prefs");
+        FileRooter.chmod(strCurrentPath+"MicroMsg");
         findView();
     }
-    void initDataDirectory(){
-        createInitDirectory("/data");
-        createInitDirectory("/data/data");
-        createInitDirectory("/data/data/com.tencent.mm");
-        createInitDirectory("/storage");
-        createInitDirectory("/storage/emulated");
-        createInitDirectory("/storage/emulated/0");
-        createInitDirectory("/storage/emulated/0/Tencent");
+    void init(){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                createInitDirectory("/data");
+                createInitDirectory("/data/data");
+                createInitDirectory("/data/data/com.tencent.mm");
+                createInitDirectory("/storage");
+                createInitDirectory("/storage/emulated");
+                createInitDirectory("/storage/emulated/0");
+                createInitDirectory("/storage/emulated/0/Tencent");
+                createPrefsToCloud("backupMd5");
+                createPrefsToCloud("changeMd5");
+                createPrefsToCloud("dirList");
+            }
+        }).start();
+    }
+
+    /**
+     * APP初始化时同步prefs到云端
+     * @param fileName(包含后缀)
+     */
+    void createPrefsToCloud(String fileName){
+        SharedPreferences sharedPreferences = getSharedPreferences(fileName,Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.commit();
+        String strPrefsPath = strCurrentPath+"shared_prefs/"+fileName+".xml";
+        sharedPreferences = getSharedPreferences("recordList",Context.MODE_PRIVATE);
+        editor = sharedPreferences.edit();
+        editor.commit();
+        String isExistFlag = sharedPreferences.getString(fileName,"null");
+        if(isExistFlag.equals("null")) {
+            uploadFile("upload", strPrefsPath, fileName+".xml", "/");
+            editor.putString(fileName, fileName);
+            editor.commit();
+        }
     }
     void findView() {
         listTraverseFile = new ArrayList<String>();
@@ -82,9 +119,7 @@ public class MainActivity extends AppCompatActivity {
         btnLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                init();//获取框内信息
                 getLoginInfo();
-                Toast.makeText(MainActivity.this, "登录成功", Toast.LENGTH_SHORT).show();
             }
         });
         btnSnapshot = (Button) findViewById(R.id.btnSnapshot);
@@ -98,13 +133,13 @@ public class MainActivity extends AppCompatActivity {
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
-                            initDataDirectory();
                             for (String s : listTraverseFile) {
                                 File file = new File(s);
                                 FileRooter.chmod(file.getAbsolutePath());
                                 FileSnapshot.getFileList(MainActivity.this, file);
                             }
-                            syncSharedPrefsToCloud();
+                            syncSharedPrefsToCloud("backupMd5.xml");
+                            syncSharedPrefsToCloud("changeMd5.xml");
                             sendMsg(MSG_COMPLETE_BACKUP);
                         }
                     }).start();
@@ -121,15 +156,23 @@ public class MainActivity extends AppCompatActivity {
                 if (!CustomProcess.isProcessRunning(context) || !CustomProcess.isServiceRunning(context)) {
                     createDialog();//弹出确认框
                 } else {
-                   //syncFileToLocal();//同步到本地文件夹
-                   syncFileToMsg();
+                    //syncFileToLocal();//同步到本地文件夹
+                    syncFileToMsg();
                 }
+            }
+        });
+        btnDelete = (Button)findViewById(R.id.btnDelete);
+        btnDelete.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                   //deleteFileOnCloud("%2F");
+                //getFileDetailOnCloud();
             }
         });
     }
     void createInitDirectory(String filePath){
         File file = new File(filePath);
-        FileSnapshot.createDirToCloud(MainActivity.this, file);
+        FileSnapshot.createDirectory(MainActivity.this, file);
     }
 
     /**
@@ -146,7 +189,6 @@ public class MainActivity extends AppCompatActivity {
                 CustomProcess.kill(processName);
                 btnSync.setText("同步数据中....");
                 btnSync.setEnabled(false);
-                //syncFileToLocal();
                 syncFileToMsg();
             }
         });
@@ -158,26 +200,45 @@ public class MainActivity extends AppCompatActivity {
         });
         builder.create().show();
     }
+
+    /**
+     * 同步到微信
+     */
     void syncFileToMsg(){
         final Context context = getApplicationContext();
         new Thread(new Runnable() {
             @Override
             public void run() {
-                File file = new File("/data/data/"+getPackageName()+"/shared_prefs/changeMd5.xml");
-                if(!file.exists()) {
-                    System.out.println("changeMd5 is not exist");
-                    String strfileDir = "/data/data/" + getPackageName() + "/shared_prefs/changeMd5.xml";
-                    downloadFile(strfileDir, "/changeMd5.xml");
+                File changeMd5File = new File(strCurrentPath +"shared_prefs/changeMd5.xml");
+                File backupMd5File = new File(strCurrentPath+"shared_prefs/backupMd5.xml");
+                downloadFile(changeMd5File.getAbsolutePath(), "/changeMd5.xml");//覆盖本地,因为可能存在本地为空
+                SharedPreferences backupMd5Prefs = context.getSharedPreferences("backupMd5", Context.MODE_PRIVATE);
+                if(backupMd5Prefs.getAll().size()==0){
+                    //说明本地是空手机,需要把云平台所有文件同步到本地
+                    downloadFile(backupMd5File.getAbsolutePath(),"/backupMd5.xml");
+                    Map<String,?>map = backupMd5Prefs.getAll();
+                    for(String key:map.keySet()){
+                        //FileRooter.chmod(key);
+                        downloadFile(key, key);
+                        System.out.println(key);
+                    }
                 }
-                SharedPreferences sharedPrefs = context.getSharedPreferences("changeMd5", Context.MODE_PRIVATE);
-                Map<String,?> strFileMap = sharedPrefs.getAll();
-                for(String key:strFileMap.keySet()){
-                    downloadFile(key,key);
+                else {
+                    SharedPreferences changeMd5Prefs = context.getSharedPreferences("changeMd5", Context.MODE_PRIVATE);
+                    Map<String, ?> strFileMap = changeMd5Prefs.getAll();
+                    for (String key : strFileMap.keySet()) {
+                        //FileRooter.chmod(key);
+                        downloadFile(key, key);
+                        System.out.println(key);
+                    }
                 }
                 sendMsg(MSG_COMPLETE_SYNC);
             }
         }).start();
     }
+    /**
+     * 同步到当前应用的文件夹下
+     */
     void syncFileToLocal(){
         final Context context = getApplicationContext();
         new Thread(new Runnable() {
@@ -185,6 +246,7 @@ public class MainActivity extends AppCompatActivity {
             public void run() {
                 File file = new File("/data/data/"+getPackageName()+"/shared_prefs/changeMd5.xml");
                 if(!file.exists()) {
+                    //说明本地未创建changeMd5，此时说明是从云端同步到本地数据,需要同步全部文件
                     System.out.println("changeMd5 is not exist");
                     String strfileDir = "/data/data/" + getPackageName() + "/shared_prefs/changeMd5.xml";
                     downloadFile(strfileDir, "/changeMd5.xml");
@@ -203,42 +265,25 @@ public class MainActivity extends AppCompatActivity {
             }
         }).start();
     }
+    void getFileDetailOnCloud(){
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    String content = HttpRequest.sendGet("http://"+strIpAddress+":8000/ajax/lib/"+strRootId+"/dir/?p=%2F&thumbnail_size=48&_=1490927383195","",strCookie);
+                    System.out.println(content);
+                    if(content.contains("backupMd5")){
+
+                    }
+                }
+            }).start();
+    }
     /**
      * 每次备份文件后将期间以及以前发生变化的文件都存入sharedPrefs并上传至云平台
      */
-    void syncSharedPrefsToCloud(){
-        String strSharedPrefsPath = "/data/data/" + getApplicationContext().getPackageName() + "/shared_prefs";
-        SharedPreferences sharedPreferences = getSharedPreferences("record",MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        String strBackupMd5 = sharedPreferences.getString("backupMd5", "null");
-        String strDir = sharedPreferences.getString("dirList","null");
-        String strChangeMd5 = sharedPreferences.getString("changeMd5","null");
+    void syncSharedPrefsToCloud(String fileName){
         //将期间发生变化的ChangeMd5文件传到云平台供以后的同步所用
-        if(strBackupMd5.equals("null")){
-            editor.putString("backupMd5","backupMd5");
-            editor.commit();
-            uploadFile("upload",strSharedPrefsPath+"/backupMd5.xml","backupMd5.xml","/");
-        }
-        else{
-            uploadFile("update",strSharedPrefsPath+"/backupMd5.xml","backupMd5.xml","/");
-        }
-        //将已创建的文件夹记录传到云平台以备不时之需
-        if(strDir.equals("null")){
-            editor.putString("dirList","dirList");
-            editor.commit();
-            uploadFile("upload",strSharedPrefsPath+"/dirList.xml","dirList.xml","/");
-        }
-        else{
-            uploadFile("update",strSharedPrefsPath+"/dirList.xml","dirList.xml","/");
-        }
-        if(strChangeMd5.equals("null")){
-            editor.putString("changeMd5", "changeMd5");
-            editor.commit();
-            uploadFile("upload",strSharedPrefsPath+"/changeMd5.xml","changeMd5.xml","/");
-        }
-        else{
-            uploadFile("update",strSharedPrefsPath+"/changeMd5.xml","changeMd5.xml","/");
-        }
+        String strSharedPrefsPath = strCurrentPath + "shared_prefs/";
+        uploadFile("update", strSharedPrefsPath + fileName, fileName, "/");
     }
     /**
      * 子线程更新UI消息
@@ -249,51 +294,58 @@ public class MainActivity extends AppCompatActivity {
         msg.what = msgType;
         myHandler.sendMessage(msg);
     }
-    void init(){
-        strIpAddress = editTextIpAddress.getText().toString();
-        strUserName = editTextUserName.getText().toString();
-        strPassword = editTextPassword.getText().toString();
-    }
     /**
      * 通过用户名和密码登录并且获得cookie和rootId
      */
     void getLoginInfo(){
-        btnLogin.setEnabled(false);
-        btnLogin.setText("已登录");
-        new Thread(new Runnable() {
-             @Override
-             public void run() {
-                 strCookie = HttpRequest.sendGetHeadItem("http://" + strIpAddress
-                         + ":8000/accounts/login/", "Set-Cookie");
-                 int i3 = strCookie.indexOf("csrftoken") + 10;
-                 int i4 = strCookie.indexOf(";", i3);
-                 strToken = strCookie.substring(i3, i4);
-                 System.out.println("****" + strToken);
-                 System.out.println();
-                 String strSession = HttpRequest.sendPost("http://" + strIpAddress
-                                 + ":8000/accounts/login/?next=/", "csrfmiddlewaretoken="
-                                 + strToken
-                                 + "&login=" + strUserName + "&password=" + strPassword + "&next=/",
-                         "django_language=en; " + strCookie);
-                 System.out.println("****" + strSession);
-                 strCookie = strSession + " csrftoken=" + strToken;//更新新的sessionid和token组合成认证Cookie
-                 System.out.println("New Cookie....." + strCookie);
-                 String strRoot = HttpRequest.sendGet("http://" + strIpAddress
-                                 + ":8000/api2/repos/", "type=mine&_=1481540118100",
-                         strCookie);
-                 System.out.println("****" + strRoot);
-                 int i1 = strRoot.indexOf("id") + 6;
-                 int i2 = strRoot.indexOf(",", i1);
-                 strRootId = strRoot.substring(i1, i2 - 1);//保存id
-                 System.out.println(strRootId);
-             }
-         }).start();
+        strIpAddress = editTextIpAddress.getText().toString();
+        strUserName = editTextUserName.getText().toString();
+        strPassword = editTextPassword.getText().toString();
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                        if (Network.isNetWorkAvailable(getApplicationContext())) {
+                            try {
+                                strCookie = HttpRequest.sendGetHeadItem("http://" + strIpAddress
+                                        + ":8000/accounts/login/", "Set-Cookie");
+                                int i3 = strCookie.indexOf("csrftoken") + 10;
+                                int i4 = strCookie.indexOf(";", i3);
+                                strToken = strCookie.substring(i3, i4);
+                                System.out.println("****" + strToken);
+                                System.out.println();
+                                String strSession = HttpRequest.sendPost("http://" + strIpAddress
+                                                + ":8000/accounts/login/?next=/", "csrfmiddlewaretoken="
+                                                + strToken
+                                                + "&login=" + strUserName + "&password=" + strPassword + "&next=/",
+                                        "django_language=en; " + strCookie);
+                                System.out.println("****" + strSession);
+                                strCookie = strSession + " csrftoken=" + strToken;//更新新的sessionid和token组合成认证Cookie
+                                System.out.println("New Cookie....." + strCookie);
+                                String strRoot = HttpRequest.sendGet("http://" + strIpAddress
+                                                + ":8000/api2/repos/", "type=mine&_=1481540118100",
+                                        strCookie);
+                                System.out.println("****" + strRoot);
+                                int i1 = strRoot.indexOf("id") + 6;
+                                int i2 = strRoot.indexOf(",", i1);
+                                strRootId = strRoot.substring(i1, i2 - 1);//保存id
+                                System.out.println(strRootId);
+                                sendMsg(MSG_SUCCESS_LOGIN);
+                            } catch (StringIndexOutOfBoundsException e) {
+                                sendMsg(MSG_UNSUCCESS_LOGIN);
+                                e.printStackTrace();
+                            }
+                        }
+                    else {
+                            sendMsg(MSG_UNSUCESS_NETWORK);
+                        }
+                }
+            }).start();
     }
     /**
      * 上传文件(保证是文件而不是文件夹,否则出错)
-     * @param strFileDir(绝对路径)
+     * @param strFileDir(本地绝对路径)
      * @param strFileName
-     * @param uploadPath(父亲目录路径)
+     * @param uploadPath(云平台父亲目录路径)
      */
     public static void uploadFile(String cmd,String strFileDir, String strFileName,
                                   String uploadPath) {
@@ -422,20 +474,27 @@ public class MainActivity extends AppCompatActivity {
         byte[] fileArray = HttpRequest.downloadFile("http://" + strIpAddress
                         + ":8000/lib/" + strRootId + "/file" + strFileCloudPath, "dl=1",
                 strCookie);///file后面应该跟云平台对应的路径名,当前所下载的文件是在根目录下
-        common.writeFile(strFileDir + ".backup", fileArray);
+        common.writeFile(strFileDir, fileArray);
     }
     /**
      * 创建文件的post包格式必须包含XCRSToken！！
      * %2F后跟文件夹名字代表在该文件夹下/dir
      */
-    public static void createFileToCloud(final String strFilePath){
-                int i1 = strFilePath.lastIndexOf("/");
-                String strParentPath = strFilePath.substring(0,i1+1);
-                String strFileName = strFilePath.substring(i1+1);
-                String strContent = HttpRequest.sendPost1("http://" + strIpAddress + ":8000/ajax/repo/" + strRootId +
-                                "/dir/new/?parent_dir=" + strParentPath, "dirent_name=" + strFileName, strToken, strCookie,
-                        "application/x-www-form-urlencoded; charset=UTF-8");
-                System.out.println(strContent);
+    public static void createDirToCloud(final String strFilePath){
+        int i1 = strFilePath.lastIndexOf("/");
+        String strParentPath = strFilePath.substring(0,i1+1);
+        String strFileName = strFilePath.substring(i1+1);
+        String strContent = HttpRequest.sendPost1("http://" + strIpAddress + ":8000/ajax/repo/" + strRootId +
+                        "/dir/new/?parent_dir=" + strParentPath, "dirent_name=" + strFileName, strToken, strCookie,
+                "application/x-www-form-urlencoded; charset=UTF-8");
+        System.out.println(strContent);
+    }
+    public static void deleteFileOnCloud(final String strFilePath){
+        String strParam = "dirents_names=storage&dirents_names=data&dirents_names=dirList.xml&dirents_names=changeMd5.xml&dirents_names=backupMd5.xml";
+        String strContent = HttpRequest.sendPost1("http://" + strIpAddress + ":8000/ajax/repo/" + strRootId +
+                        "/dir/new/?parent_dir=" + strFilePath,strParam, strToken, strCookie,
+                "application/x-www-form-urlencoded; charset=UTF-8");
+        System.out.println(strContent);
     }
     Handler myHandler = new Handler(){
         @Override
@@ -451,6 +510,19 @@ public class MainActivity extends AppCompatActivity {
                     btnSync.setEnabled(true);
                     btnSync.setText("同步");
                     Toast.makeText(MainActivity.this,"微信数据同步完成",Toast.LENGTH_SHORT).show();
+                    break;
+                case MSG_UNSUCCESS_LOGIN:
+                    Toast.makeText(MainActivity.this,"用户名或者密码错误",Toast.LENGTH_SHORT).show();
+                    break;
+                case MSG_SUCCESS_LOGIN:
+                    Toast.makeText(MainActivity.this,"登录成功",Toast.LENGTH_SHORT).show();
+                    btnLogin.setEnabled(false);
+                    btnLogin.setText("已登录");
+                    init();
+                    break;
+                case MSG_UNSUCESS_NETWORK:
+                    Toast.makeText(MainActivity.this,"无法连接网络，请检查联网",Toast.LENGTH_SHORT).show();
+                    break;
             }
         }
     };
