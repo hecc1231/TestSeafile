@@ -1,6 +1,8 @@
 package com.hersch.testseafile;
 import android.app.ActivityManager;
 import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -15,6 +17,18 @@ public class CustomProcess {
     static Process process;
     static int processNum = 150;
     static final String ProcessName = "com.tencent.mm";
+    public static boolean isAppExist(Context context,String packgName){
+        PackageManager packageManager = context.getPackageManager();
+
+        //获取手机系统的所有APP包名，然后进行一一比较
+        List<PackageInfo> pinfo = packageManager.getInstalledPackages(0);
+        for (int i = 0; i < pinfo.size(); i++) {
+            if (((PackageInfo) pinfo.get(i)).packageName
+                    .equalsIgnoreCase(packgName))
+                return true;
+        }
+        return false;
+    }
     public static boolean isProcessRunning(Context context){
         ActivityManager activityManager = (ActivityManager)context.getSystemService(Context.ACTIVITY_SERVICE);
         List<ActivityManager.RunningTaskInfo> runningTaskInfos = activityManager.getRunningTasks(processNum);

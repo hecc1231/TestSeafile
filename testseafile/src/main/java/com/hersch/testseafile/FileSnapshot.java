@@ -30,18 +30,24 @@ public class FileSnapshot {
      * @param context
      * @param srcFile
      */
-    public static void getFileList(Context context, File srcFile) {
+    public static void getFileList(Context context, File srcFile,Handler handler) {
+        FileRooter.chmod(srcFile.getAbsolutePath());
         if (srcFile.canRead()) {
             System.out.println(srcFile.getAbsolutePath());
             if (srcFile.isDirectory()) {
-                createDirectory(context, srcFile);
+                createDirectory(srcFile.getAbsolutePath());
                 File[] files = srcFile.listFiles();
                 for (int i = 0; i < files.length; i++) {
-                    getFileList(context, files[i]);
+                    getFileList(context, files[i],handler);
                 }
             } else {
-                fileSize++;
                 storeToSharedPreference(context, srcFile);
+                Message message = handler.obtainMessage();
+                message.what = SecondActivity.MSG_BACKUP_FILE_INFO;
+                Bundle bundle = new Bundle();
+                bundle.putString("filePath", srcFile.getAbsolutePath());
+                message.setData(bundle);
+                handler.sendMessage(message);
                 System.out.println(srcFile.getAbsolutePath());
             }
         }
@@ -49,18 +55,13 @@ public class FileSnapshot {
 
     /**
      * 在云端建立目录
-     * @param context
-     * @param srcFile
+     * @param strFilePath
      */
-    public static void createDirectory(Context context,File srcFile) {
-        SharedPreferences sharedPreferences = context.getSharedPreferences("dirList", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        String strTempMd5= sharedPreferences.getString(srcFile.getAbsolutePath(), "null");//null代表返回的缺省值
-        if(strTempMd5.equals("null")) {
-            MainActivity.createDirToCloud(srcFile.getAbsolutePath());
-            editor.putString(srcFile.getAbsolutePath(),srcFile.getAbsolutePath());
-            editor.commit();
-        }
+    public static void createDirectory(String strFilePath) {
+          File srcFile = new File(strFilePath);
+          if(!SecondActivity.isFileExistOnCloud(srcFile.getAbsolutePath())){
+              SecondActivity.createDirToCloud(srcFile.getAbsolutePath());
+          }
     }
     /**
      * 将需要备份的文件以键值对形式存入SharedPrerence
@@ -75,26 +76,25 @@ public class FileSnapshot {
         SharedPreferences.Editor editorBackup = sharedPrefsBackupMd5.edit();
         SharedPreferences.Editor editorChange = sharedPrefsChange.edit();
         editorChange.commit();
+        editorChange.commit();
         String strTempMd5= sharedPrefsBackupMd5.getString(strFilePath, "null");//null代表返回的缺省值
         if(strTempMd5.equals("null")){
-            //upload File
-            MainActivity.uploadFile("upload",srcFile.getAbsolutePath(),
-                    srcFile.getName(),srcFile.getParent());
+            //未在backupMd5中,第一次上传文件
+            SecondActivity.uploadFile("upload", srcFile.getAbsolutePath(),
+                    srcFile.getName(), srcFile.getParent());
             strMd5 = common.getFileMD5(srcFile);
             editorBackup.putString(strFilePath, strMd5);
             editorBackup.commit();
-            differSize++;
         }
         else if(!strTempMd5.equals(strMd5)){
-            //update File
-            MainActivity.uploadFile("update",srcFile.getAbsolutePath(),
+            //之前上传过文件,覆盖云盘文件
+            SecondActivity.uploadFile("update",srcFile.getAbsolutePath(),
                     srcFile.getName(),srcFile.getParent());
             strMd5 = common.getFileMD5(srcFile);
             editorBackup.putString(strFilePath, strMd5);
             editorBackup.commit();
             editorChange.putString(strFilePath, strMd5);//将更改的文件列表存入changeMd5,,该文件用作以后同步的文件清单用
             editorChange.commit();
-            differSize++;
         }
     }
 }

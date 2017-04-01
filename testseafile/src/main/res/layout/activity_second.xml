@@ -8,35 +8,34 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     android:paddingBottom="@dimen/activity_vertical_margin"
-    tools:context=".MainActivity">
+    tools:context=".SecondActivity">
     <LinearLayout
         android:orientation="vertical"
-        android:layout_width="fill_parent"
         android:gravity="center"
+        android:layout_width="fill_parent"
         android:layout_height="fill_parent">
-    <EditText
-        android:hint="Input ipAddress"
+    <TextView
+        android:singleLine="true"
+        android:ellipsize="start"
+        android:maxEms="20"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/editTextIpAdress"
-        android:text="@string/default_ip_address"/>
-    <EditText
-        android:hint="Input userName"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/default_user_name"
-        android:id="@+id/editTextUserName"/>
-    <EditText
-        android:hint="Input password"
-        android:password="true"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/default_user_pwd"
-        android:id="@+id/editTextPassword"/>
+        android:id="@+id/tvFileScanner"
+        android:hint="scan fileList"/>
     <Button
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:id="@+id/btnLogin"
-        android:text="登录"/>
+        android:id="@+id/btnSnapshot"
+        android:text="备份数据"/>
+    <Button
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/btnSync"
+        android:text="同步数据"/>
+    <Button
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/btnDelete"
+        android:text="删除"/>
     </LinearLayout>
 </LinearLayout>
