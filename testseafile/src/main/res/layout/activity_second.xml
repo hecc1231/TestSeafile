@@ -10,10 +10,30 @@
     android:paddingBottom="@dimen/activity_vertical_margin"
     tools:context=".SecondActivity">
     <LinearLayout
+        android:layout_height="wrap_content"
+        android:layout_width="fill_parent"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="horizontal">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_weight="3"
+            android:gravity="center"
+            android:id="@+id/tvFileList"
+            android:text="Please select list of files to backup"
+            android:layout_height="fill_parent" />
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/btnFileChoose"
+            android:text="@string/str_file_chooser"/>
+    </LinearLayout>
+    <LinearLayout
+        android:layout_weight="2"
         android:orientation="vertical"
         android:gravity="center"
         android:layout_width="fill_parent"
-        android:layout_height="fill_parent">
+        android:layout_height="wrap_content">
     <TextView
         android:singleLine="true"
         android:ellipsize="start"

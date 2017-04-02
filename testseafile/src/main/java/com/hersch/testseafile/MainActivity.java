@@ -139,6 +139,7 @@ public class MainActivity extends AppCompatActivity {
                     btnLogin.setText("已登录");
                     Intent intent = new Intent(MainActivity.this,SecondActivity.class);
                     startActivity(intent);
+                    finish();
                     break;
                 case MSG_UNSUCESS_NETWORK:
                     Toast.makeText(MainActivity.this,"无法连接网络，请检查联网",Toast.LENGTH_SHORT).show();

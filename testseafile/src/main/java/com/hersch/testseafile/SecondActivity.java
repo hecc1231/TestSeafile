@@ -1,7 +1,10 @@
 package com.hersch.testseafile;
 
+import android.app.Activity;
+import android.app.Application;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
@@ -11,6 +14,7 @@ import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -21,6 +25,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class SecondActivity extends AppCompatActivity {
     public static String strToken = MainActivity.strToken;
@@ -28,6 +34,7 @@ public class SecondActivity extends AppCompatActivity {
     final static int MSG_COMPLETE_BACKUP = 1;
     final static int MSG_COMPLETE_SYNC = 2;
     final static int MSG_BACKUP_FILE_INFO = 3;
+    final static int MSG_FILE_SELECT_CODE = 4;
     static String processName = "com.tencent.mm";
     static List<String> listTraverseFile;
     static String strIpAddress = HttpRequest.strIpAddress;//"10.108.20.142";//
@@ -41,7 +48,9 @@ public class SecondActivity extends AppCompatActivity {
     static String strCurrentPath = "/data/data/com.hersch.testseafile/";
     static String strFileDir = "/data/data/com.hersch.testseafile/data/data/com.tencent.mm/";
     Button btnSync;
+    Button btnFileChoose;
     Button btnSnapshot;
+    TextView tvFileList;
     TextView tvFileScanner;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,7 +99,7 @@ public class SecondActivity extends AppCompatActivity {
         listTraverseFile = new ArrayList<String>();
         listTraverseFile.add("/data/data/com.tencent.mm/shared_prefs");
         listTraverseFile.add("/data/data/com.tencent.mm/MicroMsg");
-        //listTraverseFile.add("/storage/emulated/0/Tencent/MicroMsg");
+        listTraverseFile.add("/storage/emulated/0/Tencent/MicroMsg");
         tvFileScanner=(TextView)findViewById(R.id.tvFileScanner);
         btnSnapshot = (Button) findViewById(R.id.btnSnapshot);
         btnSnapshot.setOnClickListener(new View.OnClickListener() {
@@ -136,6 +145,28 @@ public class SecondActivity extends AppCompatActivity {
             }
         });
     }
+    boolean clickFlag = false;
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if(keyCode == KeyEvent.KEYCODE_BACK&&event.getAction()==KeyEvent.ACTION_DOWN) {
+            if (clickFlag == false) {
+                clickFlag = true;//第一次点击
+                Toast.makeText(SecondActivity.this, "再按一次退出程序", Toast.LENGTH_SHORT).show();
+                final Timer timer = new Timer();
+                timer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        //计时器两秒后自动把clickFlag改为false
+                        clickFlag = false;
+                    }
+                }, 2000);
+                return true;
+            } else {
+                finish();
+            }
+        }
+        return super.onKeyDown(keyCode, event);
+    }
     /**
      * 弹出确认关闭微信的窗口
      */
@@ -172,11 +203,11 @@ public class SecondActivity extends AppCompatActivity {
             public void run() {
                 File changeMd5File = new File(strCurrentPath +"shared_prefs/+changeMd5.xml");
                 File backupMd5File = new File(strCurrentPath+"shared_prefs/backupMd5.xml");
-                downloadFile(changeMd5File.getAbsolutePath(), "/changeMd5.xml");//覆盖本地,因为可能存在本地为空
                 SharedPreferences backupMd5Prefs = context.getSharedPreferences("backupMd5", Context.MODE_PRIVATE);
-                if(backupMd5Prefs.getAll().size()==0){
+                if(!CustomProcess.isAppExist(getApplicationContext(),processName)){
                     //说明本地是空手机,需要把云平台所有文件同步到本地
                     downloadFile(backupMd5File.getAbsolutePath(),"/backupMd5.xml");
+                    downloadFile(changeMd5File.getAbsolutePath(),"changeMd5.xml");
                     Map<String,?>map = backupMd5Prefs.getAll();
                     for(String key:map.keySet()){
                         //FileRooter.chmod(key);
