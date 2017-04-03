@@ -63,7 +63,7 @@ public class FileRooter {
                 /* Missing read/write permission, trying to chmod the file */
                 Process su;
                 su = Runtime.getRuntime().exec("su");
-                String cmd = "chmod 776 " + strFilePath + "\n" + "exit\n";
+                String cmd = "chmod 777 " + strFilePath + "\n" + "exit\n";
                 su.getOutputStream().write(cmd.getBytes());
                 if ((su.waitFor() != 0) || !device.canRead()
                         || !device.canWrite()) {

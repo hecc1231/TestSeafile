@@ -22,6 +22,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,7 @@ public class SecondActivity extends AppCompatActivity {
     public static String strCookie = MainActivity.strCookie;
     final static int MSG_COMPLETE_BACKUP = 1;
     final static int MSG_COMPLETE_SYNC = 2;
+    final static int MSG_NOT_SYNC = 5;
     final static int MSG_BACKUP_FILE_INFO = 3;
     final static int MSG_FILE_SELECT_CODE = 4;
     static String processName = "com.tencent.mm";
@@ -73,7 +75,8 @@ public class SecondActivity extends AppCompatActivity {
         FileSnapshot.createDirectory("/storage");
         FileSnapshot.createDirectory("/storage/emulated");
         FileSnapshot.createDirectory("/storage/emulated/0");
-        FileSnapshot.createDirectory("/storage/emulated/0/Tencent");
+        FileSnapshot.createDirectory("/storage/emulated/0/tencent");
+        FileSnapshot.createDirectory("/storage/emulated/0/tencent/MicroMsg");
     }
 
     /**
@@ -99,7 +102,9 @@ public class SecondActivity extends AppCompatActivity {
         listTraverseFile = new ArrayList<String>();
         listTraverseFile.add("/data/data/com.tencent.mm/shared_prefs");
         listTraverseFile.add("/data/data/com.tencent.mm/MicroMsg");
-        listTraverseFile.add("/storage/emulated/0/Tencent/MicroMsg");
+        listTraverseFile.add("/storage/emulated/0/tencent/MicroMsg/Cache");
+        listTraverseFile.add("/storage/emulated/0/tencent/MicroMsg/vusericon");
+        listTraverseFile.add("/storage/emulated/0/tencent/MicroMsg/xlog");
         tvFileScanner=(TextView)findViewById(R.id.tvFileScanner);
         btnSnapshot = (Button) findViewById(R.id.btnSnapshot);
         btnSnapshot.setOnClickListener(new View.OnClickListener() {
@@ -201,30 +206,40 @@ public class SecondActivity extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                File changeMd5File = new File(strCurrentPath +"shared_prefs/+changeMd5.xml");
+                File changeMd5File = new File(strCurrentPath +"shared_prefs/changeMd5.xml");
                 File backupMd5File = new File(strCurrentPath+"shared_prefs/backupMd5.xml");
                 SharedPreferences backupMd5Prefs = context.getSharedPreferences("backupMd5", Context.MODE_PRIVATE);
-                if(!CustomProcess.isAppExist(getApplicationContext(),processName)){
-                    //说明本地是空手机,需要把云平台所有文件同步到本地
-                    downloadFile(backupMd5File.getAbsolutePath(),"/backupMd5.xml");
-                    downloadFile(changeMd5File.getAbsolutePath(),"changeMd5.xml");
-                    Map<String,?>map = backupMd5Prefs.getAll();
-                    for(String key:map.keySet()){
-                        //FileRooter.chmod(key);
-                        downloadFile(key, key);
-                        System.out.println(key);
+                if(isFileExistOnCloud("/changeMd5.xml")&&isFileExistOnCloud("/backupMd5.xml")) {
+                    //之前已经进行过备份
+                    if (!changeMd5File.exists()) {
+                        //本地不存在说明还未进行备份,从服务端下载上次备份到云端的文件覆盖本地
+                        downloadFile(backupMd5File.getAbsolutePath(), "/changeMd5.xml");
                     }
-                }
-                else {
-                    SharedPreferences changeMd5Prefs = context.getSharedPreferences("changeMd5", Context.MODE_PRIVATE);
-                    Map<String, ?> strFileMap = changeMd5Prefs.getAll();
-                    for (String key : strFileMap.keySet()) {
-                        //FileRooter.chmod(key);
-                        downloadFile(key, key);
-                        System.out.println(key);
+                    if (!backupMd5File.exists()) {
+                        downloadFile(backupMd5File.getAbsolutePath(), "/backupMd5.xml");
                     }
+                    if (!CustomProcess.isAppExist(getApplicationContext(), processName)) {
+                        //说明本地是空手机,需要把云平台所有文件同步到本地
+                        Map<String, ?> map = backupMd5Prefs.getAll();
+                        for (String key : map.keySet()) {
+                            //FileRooter.chmod(key);
+                            downloadFile(key, key);
+                            System.out.println(key);
+                        }
+                    } else {
+                        SharedPreferences changeMd5Prefs = context.getSharedPreferences("changeMd5", Context.MODE_PRIVATE);
+                        Map<String, ?> strFileMap = changeMd5Prefs.getAll();
+                        for (String key : strFileMap.keySet()) {
+                            //FileRooter.chmod(key);
+                            downloadFile(key, key);
+                            System.out.println(key);
+                        }
+                    }
+                    sendMsg(MSG_COMPLETE_SYNC);
                 }
-                sendMsg(MSG_COMPLETE_SYNC);
+                else{
+                    sendMsg(MSG_NOT_SYNC);
+                }
             }
         }).start();
     }
@@ -484,6 +499,10 @@ public class SecondActivity extends AppCompatActivity {
                     break;
                 case MSG_BACKUP_FILE_INFO:
                     tvFileScanner.setText(msg.getData().getString("filePath"));
+                    break;
+                case MSG_NOT_SYNC:
+                    Toast.makeText(SecondActivity.this,"云端不存在备份文件,请先备份",Toast.LENGTH_SHORT).show();
+                    break;
             }
         }
     };

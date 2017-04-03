@@ -14,6 +14,8 @@ import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
 
@@ -33,6 +35,7 @@ public class HttpRequest {
         BufferedReader in = null;
         try {
             String urlNameString = url + "?" + param;
+            urlNameString = checkParam(urlNameString);
             URL realUrl = new URL(urlNameString);
             URLConnection connection = realUrl.openConnection();
             connection.setRequestProperty("accept", "application/json, text/javascript, */*; q=0.01");
@@ -73,6 +76,7 @@ public class HttpRequest {
         BufferedReader in = null;
         try {
             String urlNameString = url + "?" + param;
+            checkParam(urlNameString);
             URL realUrl = new URL(urlNameString);
             URLConnection connection = realUrl.openConnection();
             connection.setRequestProperty("accept", "application/json, text/javascript, */*; q=0.01");
@@ -112,7 +116,8 @@ public class HttpRequest {
         String result = "";
         BufferedReader in = null;
         String strParamValue = "";
-
+        param = checkParam(param);
+        url = checkParam(url);
         try {
             String urlNameString = url;
             URL realUrl = new URL(urlNameString);
@@ -173,6 +178,8 @@ public class HttpRequest {
         String result = "";
         BufferedReader in = null;
         String strParamValue = "";
+        param = checkParam(param);
+        url = checkParam(url);
         try {
             String urlNameString = url;
             URL realUrl = new URL(urlNameString);
@@ -228,6 +235,8 @@ public class HttpRequest {
         BufferedReader in = null;
         String result = "";
         String strParamValue = "";
+        param = checkParam(param);
+        url = checkParam(url);
         try {
             URL realUrl = new URL(url);
             HttpURLConnection connection = (HttpURLConnection)realUrl.openConnection();
@@ -290,8 +299,9 @@ public class HttpRequest {
         OutputStreamWriter out = null;
         BufferedReader in = null;
         String result = "";
+        param = checkParam(param);
+        url = checkParam(url);
         System.out.println("************** URL:" +url);
-
         try {
             URL realUrl = new URL(url);
             HttpURLConnection connection = (HttpURLConnection)realUrl.openConnection();
@@ -338,7 +348,16 @@ public class HttpRequest {
 
         return result;
     }
-
+    private static String checkParam(String param){
+        StringBuilder sb = new StringBuilder(param);
+        String tempStr = sb.toString();
+        int place=0;
+        while((place=tempStr.lastIndexOf("%"))!=-1){
+            sb.insert(place+1,"25");
+            tempStr = sb.substring(0,place);
+        }
+        return sb.toString();
+    }
     public static String sendOptions(String url, String param) {
         String result = "";
         BufferedReader in = null;
@@ -386,6 +405,7 @@ public class HttpRequest {
     }
 
     public static String uploadFile(String url, byte[] param, String strCookie) {
+        url = checkParam(url);
         PrintWriter out = null;
         BufferedReader in = null;
         String result = "";
