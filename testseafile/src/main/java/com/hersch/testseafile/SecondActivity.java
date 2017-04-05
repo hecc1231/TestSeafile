@@ -208,13 +208,16 @@ public class SecondActivity extends AppCompatActivity {
                         for (String key : map.keySet()) {
                             new File(strCurrentPath+key).getParentFile().mkdirs();
                             downloadFile(strCurrentPath + key, key);
-
                             System.out.println(key);
                         }
                     } else {
                         Map<String, ?> strFileMap = changeMd5Prefs.getAll();
                         for (String key : strFileMap.keySet()) {
-                            createFile(key);
+                            File srcFile = new File(key);
+                            if(!srcFile.canRead()||!srcFile.canWrite()
+                                    ||!srcFile.canExecute()){
+                                FileRooter.chmod("chmod 777 ",key);
+                            }
                             downloadFile(key, key);
                             System.out.println(key);
                         }
