@@ -19,7 +19,6 @@ public class CustomProcess {
     static final String ProcessName = "com.tencent.mm";
     public static boolean isAppExist(Context context,String packgName){
         PackageManager packageManager = context.getPackageManager();
-
         //获取手机系统的所有APP包名，然后进行一一比较
         List<PackageInfo> pinfo = packageManager.getInstalledPackages(0);
         for (int i = 0; i < pinfo.size(); i++) {

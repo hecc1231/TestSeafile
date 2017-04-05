@@ -52,8 +52,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        FileRooter.chmod(strCurrentPath + "shared_prefs");//对文件以及子文件进行chmod 777
-        FileRooter.chmod(strCurrentPath + "MicroMsg");
+        FileRooter.chmod("chmod 777 ",strCurrentPath + "shared_prefs");//对文件以及子文件进行chmod 777
+        FileRooter.chmod("chmod 777 ",strCurrentPath + "MicroMsg");
         findView();
     }
     void findView() {

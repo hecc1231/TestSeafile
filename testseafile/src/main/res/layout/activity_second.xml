@@ -34,28 +34,28 @@
         android:gravity="center"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content">
-    <TextView
-        android:singleLine="true"
-        android:ellipsize="start"
-        android:maxEms="20"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/tvFileScanner"
-        android:hint="scan fileList"/>
-    <Button
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/btnSnapshot"
-        android:text="备份数据"/>
-    <Button
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/btnSync"
-        android:text="同步数据"/>
-    <Button
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/btnDelete"
-        android:text="删除"/>
+        <TextView
+            android:singleLine="true"
+            android:ellipsize="start"
+            android:maxEms="20"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/tvFileScanner"
+            android:hint="scan fileList"/>
+        <Button
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/btnSnapshot"
+            android:text="备份数据"/>
+        <Button
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/btnSync"
+            android:text="同步数据"/>
+        <Button
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/btnDelete"
+            android:text="删除"/>
     </LinearLayout>
 </LinearLayout>

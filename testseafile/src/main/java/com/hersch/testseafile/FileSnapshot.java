@@ -31,7 +31,9 @@ public class FileSnapshot {
      * @param srcFile
      */
     public static void getFileList(Context context, File srcFile,Handler handler) {
-        FileRooter.chmod(srcFile.getAbsolutePath());
+        if(!srcFile.canRead()||!srcFile.canWrite()||!srcFile.canExecute()) {
+            FileRooter.chmod("chmod 777 ",srcFile.getAbsolutePath());
+        }
         if (srcFile.canRead()) {
             System.out.println(srcFile.getAbsolutePath());
             if (srcFile.isDirectory()) {
@@ -52,7 +54,6 @@ public class FileSnapshot {
             }
         }
     }
-
     /**
      * 在云端建立目录
      * @param strFilePath
@@ -76,10 +77,10 @@ public class FileSnapshot {
         SharedPreferences.Editor editorBackup = sharedPrefsBackupMd5.edit();
         SharedPreferences.Editor editorChange = sharedPrefsChange.edit();
         editorChange.commit();
-        editorChange.commit();
+        editorBackup.commit();
         String strTempMd5= sharedPrefsBackupMd5.getString(strFilePath, "null");//null代表返回的缺省值
         if(strTempMd5.equals("null")){
-            //未在backupMd5中,第一次上传文件
+            //未在backupMd5中,第一次上传该文件
             SecondActivity.uploadFile("upload", srcFile.getAbsolutePath(),
                     srcFile.getName(), srcFile.getParent());
             strMd5 = common.getFileMD5(srcFile);

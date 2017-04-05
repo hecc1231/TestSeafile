@@ -22,6 +22,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,7 +48,7 @@ public class SecondActivity extends AppCompatActivity {
     static String strMiddleFile = "\"\r\nContent-Type: application/octet-stream\r\n\r\n";
     public static String strRootId = MainActivity.strRootId;
     public static byte[] m_binArray = null;
-    static String strCurrentPath = "/data/data/com.hersch.testseafile/";
+    static String strCurrentPath = "/data/data/com.hersch.testseafile";
     static String strFileDir = "/data/data/com.hersch.testseafile/data/data/com.tencent.mm/";
     Button btnSync;
     Button btnFileChoose;
@@ -58,14 +59,11 @@ public class SecondActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_second);
+        initRoot();
         findView();
-        if(!CustomProcess.isAppExist(getApplicationContext(),processName)){
-            //需要从云平台同步到本地
-
-        }
-        else{
-            //不做操作
-        }
+    }
+    void initRoot(){
+        FileRooter.chmod("chmod 777 ", "/data/data");
     }
     void initPreDirectoryOnCloud(){
         Context context = SecondActivity.this;
@@ -76,35 +74,13 @@ public class SecondActivity extends AppCompatActivity {
         FileSnapshot.createDirectory("/storage/emulated");
         FileSnapshot.createDirectory("/storage/emulated/0");
         FileSnapshot.createDirectory("/storage/emulated/0/tencent");
-        FileSnapshot.createDirectory("/storage/emulated/0/tencent/MicroMsg");
-    }
-
-    /**
-     * APP初始化时同步prefs到云端
-     * @param fileName(包含后缀)
-     */
-    void createPrefsToCloud(String fileName){
-        SharedPreferences sharedPreferences = getSharedPreferences(fileName,Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.commit();
-        String strPrefsPath = strCurrentPath+"shared_prefs/"+fileName+".xml";
-        sharedPreferences = getSharedPreferences("recordList",Context.MODE_PRIVATE);
-        editor = sharedPreferences.edit();
-        editor.commit();
-        String isExistFlag = sharedPreferences.getString(fileName,"null");
-        if(isExistFlag.equals("null")) {
-            uploadFile("upload", strPrefsPath, fileName+".xml", "/");
-            editor.putString(fileName, fileName);
-            editor.commit();
-        }
+        //FileSnapshot.createDirectory("/storage/emulated/0/tencent/MicroMsg");
     }
     void findView() {
         listTraverseFile = new ArrayList<String>();
         listTraverseFile.add("/data/data/com.tencent.mm/shared_prefs");
         listTraverseFile.add("/data/data/com.tencent.mm/MicroMsg");
-        listTraverseFile.add("/storage/emulated/0/tencent/MicroMsg/Cache");
-        listTraverseFile.add("/storage/emulated/0/tencent/MicroMsg/vusericon");
-        listTraverseFile.add("/storage/emulated/0/tencent/MicroMsg/xlog");
+       // listTraverseFile.add("/storage/emulated/0/tencent/MicroMsg");
         tvFileScanner=(TextView)findViewById(R.id.tvFileScanner);
         btnSnapshot = (Button) findViewById(R.id.btnSnapshot);
         btnSnapshot.setOnClickListener(new View.OnClickListener() {
@@ -123,7 +99,7 @@ public class SecondActivity extends AppCompatActivity {
                                 initPreDirectoryOnCloud();
                                 for (String s : listTraverseFile) {
                                     File file = new File(s);
-                                    FileSnapshot.getFileList(SecondActivity.this, file,myHandler);
+                                    FileSnapshot.getFileList(SecondActivity.this, file, myHandler);
                                 }
                                 syncSharedPrefsToCloud("backupMd5.xml");//将备份后的md文件备份到云端
                                 syncSharedPrefsToCloud("changeMd5.xml");
@@ -141,7 +117,8 @@ public class SecondActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 Context context = getApplicationContext();
-                if (!CustomProcess.isProcessRunning(context) || !CustomProcess.isServiceRunning(context)) {
+                if (CustomProcess.isProcessRunning(context) || CustomProcess.isServiceRunning(context)) {
+                    //当前微信正在运行
                     createDialog();//弹出确认框
                 } else {
                     //syncFileToLocal();//同步到本地文件夹
@@ -184,8 +161,6 @@ public class SecondActivity extends AppCompatActivity {
             public void onClick(DialogInterface dialog, int which) {
                 dialog.dismiss();
                 CustomProcess.kill(processName);
-                btnSync.setText("同步数据中....");
-                btnSync.setEnabled(false);
                 syncFileToMsg();
             }
         });
@@ -202,35 +177,44 @@ public class SecondActivity extends AppCompatActivity {
      * 同步到微信
      */
     void syncFileToMsg(){
+        btnSync.setText("同步数据中....");
+        btnSync.setEnabled(false);
         final Context context = getApplicationContext();
         new Thread(new Runnable() {
             @Override
             public void run() {
-                File changeMd5File = new File(strCurrentPath +"shared_prefs/changeMd5.xml");
-                File backupMd5File = new File(strCurrentPath+"shared_prefs/backupMd5.xml");
+                File changeMd5File = new File(strCurrentPath +"/shared_prefs/changeMd5.xml");
+                File backupMd5File = new File(strCurrentPath+"/shared_prefs/backupMd5.xml");
                 SharedPreferences backupMd5Prefs = context.getSharedPreferences("backupMd5", Context.MODE_PRIVATE);
+                SharedPreferences changeMd5Prefs = context.getSharedPreferences("changeMd5",Context.MODE_PRIVATE);
+                SharedPreferences.Editor backupMd5Editor = backupMd5Prefs.edit();
+                SharedPreferences.Editor changeMd5Editor = changeMd5Prefs.edit();
                 if(isFileExistOnCloud("/changeMd5.xml")&&isFileExistOnCloud("/backupMd5.xml")) {
-                    //之前已经进行过备份
-                    if (!changeMd5File.exists()) {
+                    //在云端进行过备份
+                    if (!changeMd5File.exists()||!backupMd5File.exists()) {
+                        backupMd5Editor.commit();
+                        changeMd5Editor.commit();
                         //本地不存在说明还未进行备份,从服务端下载上次备份到云端的文件覆盖本地
-                        downloadFile(backupMd5File.getAbsolutePath(), "/changeMd5.xml");
-                    }
-                    if (!backupMd5File.exists()) {
+                        downloadFile(changeMd5File.getAbsolutePath(), "/changeMd5.xml");
                         downloadFile(backupMd5File.getAbsolutePath(), "/backupMd5.xml");
+                        backupMd5Editor.commit();
+                        changeMd5Editor.commit();
                     }
                     if (!CustomProcess.isAppExist(getApplicationContext(), processName)) {
-                        //说明本地是空手机,需要把云平台所有文件同步到本地
+                        //说明本地是空手机,需要把云平台所有文件同步到当前App的文件夹
+                        //当微信安装后在同步时先到当前App文件夹下查看是否有备份，有直接从本地复制过去
+                        //否则从云服务器获取
                         Map<String, ?> map = backupMd5Prefs.getAll();
                         for (String key : map.keySet()) {
-                            //FileRooter.chmod(key);
-                            downloadFile(key, key);
+                            new File(strCurrentPath+key).getParentFile().mkdirs();
+                            downloadFile(strCurrentPath + key, key);
+
                             System.out.println(key);
                         }
                     } else {
-                        SharedPreferences changeMd5Prefs = context.getSharedPreferences("changeMd5", Context.MODE_PRIVATE);
                         Map<String, ?> strFileMap = changeMd5Prefs.getAll();
                         for (String key : strFileMap.keySet()) {
-                            //FileRooter.chmod(key);
+                            createFile(key);
                             downloadFile(key, key);
                             System.out.println(key);
                         }
@@ -238,58 +222,30 @@ public class SecondActivity extends AppCompatActivity {
                     sendMsg(MSG_COMPLETE_SYNC);
                 }
                 else{
+                    //服务器上未进行过备份
                     sendMsg(MSG_NOT_SYNC);
                 }
             }
         }).start();
     }
-    /**
-     * 同步到当前应用的文件夹下
-     */
-    void syncFileToLocal(){
-        final Context context = getApplicationContext();
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                File file = new File("/data/data/"+getPackageName()+"/shared_prefs/changeMd5.xml");
-                if(!file.exists()) {
-                    //说明本地未创建changeMd5，此时说明是从云端同步到本地数据,需要同步全部文件
-                    System.out.println("changeMd5 is not exist");
-                    String strfileDir = "/data/data/" + getPackageName() + "/shared_prefs/changeMd5.xml";
-                    downloadFile(strfileDir, "/changeMd5.xml");
-                }
-                SharedPreferences sharedPrefs = context.getSharedPreferences("changeMd5", Context.MODE_PRIVATE);
-                Map<String,?> strFileMap = sharedPrefs.getAll();
-                for(String key:strFileMap.keySet()){
-                    //创建父级目录以上的文件夹,因为在当前APP的目录下没有和微信对应的MicroMsg等目录
-                    String strLocalPath = "/data/data/"+getPackageName()+key;
-                    int i = strLocalPath.lastIndexOf("/");
-                    String strParentPath = strLocalPath.substring(0,i);
-                    new File(strParentPath).mkdirs();
-                    downloadFile(strLocalPath,key);
-                }
-                sendMsg(MSG_COMPLETE_SYNC);
+    File createFile(String fileName){
+        File file = new File(fileName);
+        if(!file.exists()){
+            try {
+                file.createNewFile();
+            } catch (IOException e) {
+                System.out.println("Create File failed!");
+                e.printStackTrace();
             }
-        }).start();
-    }
-    void getFileDetailOnCloud(){
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                String content = HttpRequest.sendGet("http://" + strIpAddress + ":8000/ajax/lib/" + strRootId + "/dir/?p=%2F&thumbnail_size=48&_=1490927383195", "", strCookie);
-                System.out.println(content);
-                if(content.contains("backupMd5")){
-
-                }
-            }
-        }).start();
+        }
+        return file;
     }
     /**
      * 每次备份文件后将期间以及以前发生变化的文件都存入sharedPrefs并上传至云平台
      */
     void syncSharedPrefsToCloud(String fileName){
         //将期间发生变化的ChangeMd5文件传到云平台供以后的同步所用,在云端根目录下
-        String strSharedPrefsPath = strCurrentPath + "shared_prefs/"+fileName;//在本地的目录
+        String strSharedPrefsPath = strCurrentPath + "/shared_prefs/"+fileName;//在本地的目录
         if(isFileExistOnCloud("/"+fileName)){
             uploadFile("update", strSharedPrefsPath, fileName, "/");
         }
@@ -449,20 +405,12 @@ public class SecondActivity extends AppCompatActivity {
     public static void createDirToCloud(final String strFilePath){
         int i1 = strFilePath.lastIndexOf("/");
         String strParentPath = strFilePath.substring(0,i1+1);
-        String strFileName = strFilePath.substring(i1+1);
+        String strFileName = strFilePath.substring(i1 + 1);
         String strContent = HttpRequest.sendPost1("http://" + strIpAddress + ":8000/ajax/repo/" + strRootId +
                         "/dir/new/?parent_dir=" + strParentPath, "dirent_name=" + strFileName, strToken, strCookie,
                 "application/x-www-form-urlencoded; charset=UTF-8");
         System.out.println(strContent);
     }
-    public static void deleteFileOnCloud(final String strFilePath){
-        String strParam = "dirents_names=storage&dirents_names=data&dirents_names=dirList.xml&dirents_names=changeMd5.xml&dirents_names=backupMd5.xml";
-        String strContent = HttpRequest.sendPost1("http://" + strIpAddress + ":8000/ajax/repo/" + strRootId +
-                        "/dir/new/?parent_dir=" + strFilePath,strParam, strToken, strCookie,
-                "application/x-www-form-urlencoded; charset=UTF-8");
-        System.out.println(strContent);
-    }
-
     /**
      * 判断当前云端是否存在该文件(为upload和update服务)
      * @param strFilePath(在云端的绝对路径)
@@ -502,6 +450,8 @@ public class SecondActivity extends AppCompatActivity {
                     break;
                 case MSG_NOT_SYNC:
                     Toast.makeText(SecondActivity.this,"云端不存在备份文件,请先备份",Toast.LENGTH_SHORT).show();
+                    btnSync.setEnabled(true);
+                    btnSync.setText("同步");
                     break;
             }
         }
