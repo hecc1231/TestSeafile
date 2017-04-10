@@ -1,4 +1,4 @@
-package com.hersch.testseafile;
+package com.hersch.testseafile.files;
 
 import java.io.BufferedInputStream;
 import java.io.File;

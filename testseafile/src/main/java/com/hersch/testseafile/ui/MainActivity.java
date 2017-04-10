@@ -1,36 +1,19 @@
-package com.hersch.testseafile;
+package com.hersch.testseafile.ui;
 
-import android.app.ActivityManager;
-import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.net.ConnectivityManager;
 import android.os.*;
-import android.os.Process;
-import android.print.PrintJob;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.view.View;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import com.hersch.testseafile.R;
+import com.hersch.testseafile.net.HttpRequest;
+import com.hersch.testseafile.net.Network;
+
+import com.hersch.testseafile.files.FileRooter;
 
 public class MainActivity extends AppCompatActivity {
     public static String strToken = "";
@@ -52,8 +35,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        FileRooter.chmod("chmod 777 ",strCurrentPath + "shared_prefs");//对文件以及子文件进行chmod 777
-        FileRooter.chmod("chmod 777 ",strCurrentPath + "MicroMsg");
+//        FileRooter.chmod(strCurrentPath + "shared_prefs");//对文件以及子文件进行chmod 777
+//        FileRooter.chmod(strCurrentPath + "MicroMsg");
         findView();
     }
     void findView() {

@@ -1,4 +1,4 @@
-package com.hersch.testseafile;
+package com.hersch.testseafile.net;
 
 /**
  * Created by Hersch on 2017/2/8.

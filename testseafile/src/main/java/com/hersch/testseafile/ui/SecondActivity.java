@@ -1,43 +1,45 @@
-package com.hersch.testseafile;
+package com.hersch.testseafile.ui;
 
-import android.app.Activity;
-import android.app.Application;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
+import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.hersch.testseafile.CustomProcess;
+import com.hersch.testseafile.R;
+import com.hersch.testseafile.net.HttpRequest;
+
 import java.io.File;
 import java.io.IOException;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import com.hersch.testseafile.files.FileRooter;
+import com.hersch.testseafile.files.FileSnapshot;
+import com.hersch.testseafile.files.common;
+
 public class SecondActivity extends AppCompatActivity {
-    public static String strToken = MainActivity.strToken;
-    public static String strCookie = MainActivity.strCookie;
-    final static int MSG_COMPLETE_BACKUP = 1;
-    final static int MSG_COMPLETE_SYNC = 2;
-    final static int MSG_NOT_SYNC = 5;
-    final static int MSG_BACKUP_FILE_INFO = 3;
-    final static int MSG_FILE_SELECT_CODE = 4;
+    static String strToken = MainActivity.strToken;
+    static String strCookie = MainActivity.strCookie;
+    public final static int MSG_COMPLETE_BACKUP = 1;
+    public final static int MSG_COMPLETE_SYNC = 2;
+    public final static int MSG_BACKUP_FILE_INFO = 3;
+    public final static int MSG_FILE_SELECT_CODE = 4;
+    public final static int MSG_NOT_SYNC = 5;
     static String processName = "com.tencent.mm";
     static List<String> listTraverseFile;
     static String strIpAddress = HttpRequest.strIpAddress;//"10.108.20.142";//
@@ -52,18 +54,17 @@ public class SecondActivity extends AppCompatActivity {
     static String strFileDir = "/data/data/com.hersch.testseafile/data/data/com.tencent.mm/";
     Button btnSync;
     Button btnFileChoose;
+    Button btnTest;
     Button btnSnapshot;
     TextView tvFileList;
     TextView tvFileScanner;
+
+    boolean flagTestClick = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_second);
-        initRoot();
         findView();
-    }
-    void initRoot(){
-        FileRooter.chmod("chmod 777 ", "/data/data");
     }
     void initPreDirectoryOnCloud(){
         Context context = SecondActivity.this;
@@ -97,12 +98,15 @@ public class SecondActivity extends AppCompatActivity {
                             @Override
                             public void run() {
                                 initPreDirectoryOnCloud();
+                                FileRooter.chmodFile(777,"/data/data/"+processName,getApplicationContext());
                                 for (String s : listTraverseFile) {
                                     File file = new File(s);
+                                    FileRooter.chmodFile(777,file.getAbsolutePath(),getApplicationContext());
                                     FileSnapshot.getFileList(SecondActivity.this, file, myHandler);
                                 }
                                 syncSharedPrefsToCloud("backupMd5.xml");//将备份后的md文件备份到云端
                                 syncSharedPrefsToCloud("changeMd5.xml");
+                                syncSharedPrefsToCloud("chmodAccess.xml");
                                 sendMsg(MSG_COMPLETE_BACKUP);
                             }
                         }).start();
@@ -124,6 +128,22 @@ public class SecondActivity extends AppCompatActivity {
                     //syncFileToLocal();//同步到本地文件夹
                     syncFileToMsg();
                 }
+            }
+        });
+        btnTest = (Button)findViewById(R.id.btnTest);
+        btnTest.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+//                File file = new File("/data/data/com.tencent.mm/MicroMsg");
+//                Log.i("ls",""+file.setExecutable(true,false));
+//                new Thread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        FileRooter.sudo("/data/data/com.tencent.mm/MicroMsg");
+//                    }
+//                }).start();
+//            }
+//        });
             }
         });
     }
@@ -216,7 +236,7 @@ public class SecondActivity extends AppCompatActivity {
                             File srcFile = new File(key);
                             if(!srcFile.canRead()||!srcFile.canWrite()
                                     ||!srcFile.canExecute()){
-                                FileRooter.chmod("chmod 777 ",key);
+                                //FileRooter.chmodList(key, getApplicationContext());
                             }
                             downloadFile(key, key);
                             System.out.println(key);

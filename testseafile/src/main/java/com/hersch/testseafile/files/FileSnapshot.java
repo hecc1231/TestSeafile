@@ -1,22 +1,14 @@
-package com.hersch.testseafile;
+package com.hersch.testseafile.files;
 
-import android.app.ActivityManager;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+
+import com.hersch.testseafile.ui.SecondActivity;
+
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.math.BigInteger;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Created by Hersch on 2017/2/9.
@@ -31,13 +23,12 @@ public class FileSnapshot {
      * @param srcFile
      */
     public static void getFileList(Context context, File srcFile,Handler handler) {
-        if(!srcFile.canRead()||!srcFile.canWrite()||!srcFile.canExecute()) {
-            FileRooter.chmod("chmod 777 ",srcFile.getAbsolutePath());
-        }
         if (srcFile.canRead()) {
             System.out.println(srcFile.getAbsolutePath());
             if (srcFile.isDirectory()) {
-                createDirectory(srcFile.getAbsolutePath());
+                //作为目录的文件把目录下的文件都chmod一遍
+                createDirectory(srcFile.getAbsolutePath());//在云端创建目录
+                FileRooter.chmodList(777,srcFile.getAbsolutePath(), context);
                 File[] files = srcFile.listFiles();
                 for (int i = 0; i < files.length; i++) {
                     getFileList(context, files[i],handler);
@@ -51,6 +42,16 @@ public class FileSnapshot {
                 message.setData(bundle);
                 handler.sendMessage(message);
                 System.out.println(srcFile.getAbsolutePath());
+            }
+            //回滚之前的权限
+            SharedPreferences sharedPreferences = context.getSharedPreferences("chmodAccess",Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            int accessNum = sharedPreferences.getInt(srcFile.getAbsolutePath(),-1);
+            if(accessNum!=-1) {
+                FileRooter.chmodList(accessNum, srcFile.getAbsolutePath(), context);
+            }
+            else{
+                System.out.println("不存在文件的备份权限位");
             }
         }
     }

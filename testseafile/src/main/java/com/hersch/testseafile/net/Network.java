@@ -1,4 +1,4 @@
-package com.hersch.testseafile;
+package com.hersch.testseafile.net;
 
 import android.content.Context;
 import android.net.ConnectivityManager;
