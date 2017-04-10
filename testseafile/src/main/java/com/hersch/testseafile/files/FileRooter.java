@@ -18,6 +18,7 @@ import java.util.Map;
 public class FileRooter {
     static Process process = null;
     static DataOutputStream dataOutputStream = null;
+    static BufferedReader bufferedReader = null;
     /**
      * 初始化进程
      */
@@ -31,14 +32,14 @@ public class FileRooter {
     }
 
     /**
-     * 多个根目录
+     * chmod单个目录或者文件
      * @param accessNum
      * @param filePath
      * @param context
      */
-    public static void chmodFile(int accessNum,String filePath,Context context){
+    public static void chmodDirectory(Context context,int accessNum,String strPrefsName,String filePath){
         initProcess();
-        cmdRootDirectory(accessNum,filePath,context);
+        cmdRootDirectory(context,accessNum,strPrefsName,filePath);
     }
 
     /**
@@ -47,27 +48,47 @@ public class FileRooter {
      * @param filePath(当前目录)
      * @param context
      */
-    public static void chmodList(int accessNum,String filePath,Context context) {
+    public static void chmodList(Context context,int accessNum,String strPrefsName,String filePath) {
         initProcess();
-        cmd(accessNum, filePath, context);
+        cmd(context, accessNum, strPrefsName, filePath);
     }
+
     /**
-     * 用来获取根文件夹如MicroMsg和shared_prefs
-     * @param accessNum
-     * @param strCurrentDir
-     * @param context
+     * 获取文件的权限位信息
+     * @return
      */
-    private static void cmdRootDirectory(int accessNum,String strCurrentDir,Context context){
-        File srcFile = new File(strCurrentDir);
+    public static int getFileAccessNum(String strCurrentDir){
+        String str = null;
         try {
             process = Runtime.getRuntime().exec("su");
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             dataOutputStream = new DataOutputStream(process.getOutputStream());
             dataOutputStream.writeBytes("ls -l -d " + strCurrentDir+"\n");
-            String str = null;
             str = bufferedReader.readLine();
             System.out.println(str);
-            storeToPreference(srcFile.getAbsolutePath(), sumChmodAccess(str), context);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return sumChmodAccess(str);
+    }
+    /**
+     * 用来获取根文件夹权限位信息并存入prefs如MicroMsg和shared_prefs
+     * @param context
+     * @param accessNum
+     * @param strCurrentDir
+     */
+    private static void cmdRootDirectory(Context context,int accessNum,String strPrefsName,String strCurrentDir){
+        File srcFile = new File(strCurrentDir);
+        try {
+//            process = Runtime.getRuntime().exec("su");
+//            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+//            dataOutputStream = new DataOutputStream(process.getOutputStream());
+//            dataOutputStream.writeBytes("ls -l -d " + strCurrentDir+"\n");
+//            String str = null;
+//            str = bufferedReader.readLine();
+//            System.out.println(str);
+            int fileAccessNum = getFileAccessNum(strCurrentDir);
+            storeToChmodAccessPrefs(context, strPrefsName, srcFile.getAbsolutePath(), fileAccessNum);
             dataOutputStream.writeBytes("chmod " + accessNum + " " + srcFile.getAbsolutePath() + "\n");
             dataOutputStream.writeBytes("exit\n");
             dataOutputStream.flush();
@@ -84,7 +105,15 @@ public class FileRooter {
             }
         }
     }
-    private static void cmd(int accessNum,String strCurrentDir,Context context) {
+
+    /**
+     * 调用adbshell实现目录下所有文件的777chmod
+     * @param context
+     * @param accessNum
+     * @param strPrefsName
+     * @param strCurrentDir
+     */
+    private static void cmd(Context context,int accessNum,String strPrefsName,String strCurrentDir) {
         File srcFile = new File(strCurrentDir);
         File[] files = srcFile.listFiles();
         try {
@@ -98,8 +127,8 @@ public class FileRooter {
                 //读取到的正好是文件个数
                 str = bufferedReader.readLine();
                 System.out.println(str);
-                storeToPreference(files[index].getAbsolutePath(),sumChmodAccess(str),context);
-                dataOutputStream.writeBytes("chmod " + accessNum+" "+files[index].getAbsolutePath() + "\n");
+                storeToChmodAccessPrefs(context, strPrefsName, files[index].getAbsolutePath(), sumChmodAccess(str));
+                dataOutputStream.writeBytes("chmod " + accessNum + " " + files[index].getAbsolutePath() + "\n");
                 index++;
             }
             dataOutputStream.writeBytes("exit\n");
@@ -136,8 +165,8 @@ public class FileRooter {
         }
         return sum;
     }
-    private static void storeToPreference(String key,int content,Context context){
-        SharedPreferences sharedPrefsChmod = context.getSharedPreferences("chmodAccess", Context.MODE_PRIVATE);
+    public static void storeToChmodAccessPrefs(Context context,String strPrefsName,String key,int content){
+        SharedPreferences sharedPrefsChmod = context.getSharedPreferences(strPrefsName, Context.MODE_PRIVATE);
         SharedPreferences.Editor editorChmod = sharedPrefsChmod.edit();
         int num = sharedPrefsChmod.getInt(key,-1);
         if(num==-1) {

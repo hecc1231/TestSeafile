@@ -20,18 +20,23 @@ public class FileSnapshot {
      * 遍历微信文件备份至app根目录下,计算对应的MD5值存入SharePreference
      *
      * @param context
-     * @param srcFile
+     * @param strFilePath
      */
-    public static void getFileList(Context context, File srcFile,Handler handler) {
+    public static void getFileList(Context context, String strFilePath,Handler handler) {
+        File srcFile = new File(strFilePath);
         if (srcFile.canRead()) {
             System.out.println(srcFile.getAbsolutePath());
             if (srcFile.isDirectory()) {
                 //作为目录的文件把目录下的文件都chmod一遍
                 createDirectory(srcFile.getAbsolutePath());//在云端创建目录
-                FileRooter.chmodList(777,srcFile.getAbsolutePath(), context);
+                FileRooter.chmodList(context,777,"chmodAccess",srcFile.getAbsolutePath());
                 File[] files = srcFile.listFiles();
                 for (int i = 0; i < files.length; i++) {
-                    getFileList(context, files[i],handler);
+                    getFileList(context, files[i].getAbsolutePath(),handler);
+                }
+                //回滚之前的权限
+                if(!rollBackChmodAccess(context,strFilePath)){
+                    System.out.println("文件权限回滚失败!");
                 }
             } else {
                 storeToSharedPreference(context, srcFile);
@@ -43,16 +48,18 @@ public class FileSnapshot {
                 handler.sendMessage(message);
                 System.out.println(srcFile.getAbsolutePath());
             }
-            //回滚之前的权限
-            SharedPreferences sharedPreferences = context.getSharedPreferences("chmodAccess",Context.MODE_PRIVATE);
-            SharedPreferences.Editor editor = sharedPreferences.edit();
-            int accessNum = sharedPreferences.getInt(srcFile.getAbsolutePath(),-1);
-            if(accessNum!=-1) {
-                FileRooter.chmodList(accessNum, srcFile.getAbsolutePath(), context);
-            }
-            else{
-                System.out.println("不存在文件的备份权限位");
-            }
+        }
+    }
+    public static boolean rollBackChmodAccess(Context context,String strFilePath){
+        File srcFile = new File(strFilePath);
+        SharedPreferences sharedPreferences = context.getSharedPreferences("chmodAccess", Context.MODE_PRIVATE);
+        int accessNum = sharedPreferences.getInt(srcFile.getAbsolutePath(),-1);
+        if(accessNum!=-1) {
+            FileRooter.chmodList(context,accessNum,"chmodAccess",srcFile.getAbsolutePath());
+            return true;
+        }
+        else{
+            return false;
         }
     }
     /**

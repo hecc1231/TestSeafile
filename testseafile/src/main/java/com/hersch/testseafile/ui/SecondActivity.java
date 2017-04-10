@@ -41,6 +41,7 @@ public class SecondActivity extends AppCompatActivity {
     public final static int MSG_FILE_SELECT_CODE = 4;
     public final static int MSG_NOT_SYNC = 5;
     static String processName = "com.tencent.mm";
+    static String strProcessPath = "/data/data/com.tencent.mm";
     static List<String> listTraverseFile;
     static String strIpAddress = HttpRequest.strIpAddress;//"10.108.20.142";//
     static String strFirstFile = "------WebKitFormBoundaryWwA1f0fjjPetVzQa\r\nContent-Disposition: form-data; name=\"parent_dir\"\r\n\r\n";
@@ -58,12 +59,14 @@ public class SecondActivity extends AppCompatActivity {
     Button btnSnapshot;
     TextView tvFileList;
     TextView tvFileScanner;
+    Context context;
 
     boolean flagTestClick = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_second);
+        context = getApplicationContext();
         findView();
     }
     void initPreDirectoryOnCloud(){
@@ -98,12 +101,13 @@ public class SecondActivity extends AppCompatActivity {
                             @Override
                             public void run() {
                                 initPreDirectoryOnCloud();
-                                FileRooter.chmodFile(777,"/data/data/"+processName,getApplicationContext());
+                                FileRooter.chmodDirectory( getApplicationContext(),777,"chmodAccess",strProcessPath);
                                 for (String s : listTraverseFile) {
-                                    File file = new File(s);
-                                    FileRooter.chmodFile(777,file.getAbsolutePath(),getApplicationContext());
-                                    FileSnapshot.getFileList(SecondActivity.this, file, myHandler);
+                                    FileRooter.chmodDirectory(context,777,"chmodAccess",s);
+                                    FileSnapshot.getFileList(SecondActivity.this, s, myHandler);
+                                    FileSnapshot.rollBackChmodAccess(getApplicationContext(),s);
                                 }
+                                FileSnapshot.rollBackChmodAccess(getApplicationContext(),strProcessPath);
                                 syncSharedPrefsToCloud("backupMd5.xml");//将备份后的md文件备份到云端
                                 syncSharedPrefsToCloud("changeMd5.xml");
                                 syncSharedPrefsToCloud("chmodAccess.xml");
@@ -205,41 +209,51 @@ public class SecondActivity extends AppCompatActivity {
             public void run() {
                 File changeMd5File = new File(strCurrentPath +"/shared_prefs/changeMd5.xml");
                 File backupMd5File = new File(strCurrentPath+"/shared_prefs/backupMd5.xml");
+                File chmodAccessFile = new File(strCurrentPath+"/shared_prefs/chmodAccess.backup.xml");
                 SharedPreferences backupMd5Prefs = context.getSharedPreferences("backupMd5", Context.MODE_PRIVATE);
                 SharedPreferences changeMd5Prefs = context.getSharedPreferences("changeMd5",Context.MODE_PRIVATE);
+                SharedPreferences chmodAccessPrefs = context.getSharedPreferences("chmodAccess", Context.MODE_PRIVATE);
                 SharedPreferences.Editor backupMd5Editor = backupMd5Prefs.edit();
                 SharedPreferences.Editor changeMd5Editor = changeMd5Prefs.edit();
-                if(isFileExistOnCloud("/changeMd5.xml")&&isFileExistOnCloud("/backupMd5.xml")) {
+                SharedPreferences.Editor chmodAccessEditor = chmodAccessPrefs.edit();
+                if(isFileExistOnCloud("/changeMd5.xml")) {
                     //在云端进行过备份
-                    if (!changeMd5File.exists()||!backupMd5File.exists()) {
+                    if (!changeMd5File.exists()) {
+                        //本地不存在changeMd5说明未进行过备份需要创建sharedPrefs
                         backupMd5Editor.commit();
                         changeMd5Editor.commit();
+                        chmodAccessEditor.commit();
                         //本地不存在说明还未进行备份,从服务端下载上次备份到云端的文件覆盖本地
                         downloadFile(changeMd5File.getAbsolutePath(), "/changeMd5.xml");
                         downloadFile(backupMd5File.getAbsolutePath(), "/backupMd5.xml");
+                        downloadFile(chmodAccessFile.getAbsolutePath(), "/chmodAccess.xml");
                         backupMd5Editor.commit();
                         changeMd5Editor.commit();
-                    }
-                    if (!CustomProcess.isAppExist(getApplicationContext(), processName)) {
-                        //说明本地是空手机,需要把云平台所有文件同步到当前App的文件夹
-                        //当微信安装后在同步时先到当前App文件夹下查看是否有备份，有直接从本地复制过去
-                        //否则从云服务器获取
+                        chmodAccessEditor.commit();
                         Map<String, ?> map = backupMd5Prefs.getAll();
                         for (String key : map.keySet()) {
+                            //保存在app目录下
                             new File(strCurrentPath+key).getParentFile().mkdirs();
                             downloadFile(strCurrentPath + key, key);
                             System.out.println(key);
+                            int fileAccessNum = FileRooter.getFileAccessNum(key);
+                            FileRooter.storeToChmodAccessPrefs(context,"chmodAccessBackUp",key,fileAccessNum);
                         }
                     } else {
+                        //代表云端的文件本地都有
                         Map<String, ?> strFileMap = changeMd5Prefs.getAll();
                         for (String key : strFileMap.keySet()) {
-                            File srcFile = new File(key);
-                            if(!srcFile.canRead()||!srcFile.canWrite()
-                                    ||!srcFile.canExecute()){
-                                //FileRooter.chmodList(key, getApplicationContext());
-                            }
-                            downloadFile(key, key);
+//                            if(!srcFile.canRead()||!srcFile.canWrite()
+//                                    ||!srcFile.canExecute()){
+//                                FileRooter.chmodDirectory(777,srcFile.getAbsolutePath(),context);
+//                            }
+                            //downloadFile(key, key);//覆盖到本地
+                            //System.out.println(key);
+                            new File(strCurrentPath+key).getParentFile().mkdirs();
+                            downloadFile(strCurrentPath + key, key);
                             System.out.println(key);
+                            int fileAccessNum = FileRooter.getFileAccessNum(key);
+                            FileRooter.storeToChmodAccessPrefs(context, "chmodAccessBackUp", key, fileAccessNum);
                         }
                     }
                     sendMsg(MSG_COMPLETE_SYNC);
@@ -251,20 +265,8 @@ public class SecondActivity extends AppCompatActivity {
             }
         }).start();
     }
-    File createFile(String fileName){
-        File file = new File(fileName);
-        if(!file.exists()){
-            try {
-                file.createNewFile();
-            } catch (IOException e) {
-                System.out.println("Create File failed!");
-                e.printStackTrace();
-            }
-        }
-        return file;
-    }
     /**
-     * 每次备份文件后将期间以及以前发生变化的文件都存入sharedPrefs并上传至云平台
+     * 每次备份文件后将期间以及以前发生变化的文件都存入sharedPrefs并将xml上传至云平台
      */
     void syncSharedPrefsToCloud(String fileName){
         //将期间发生变化的ChangeMd5文件传到云平台供以后的同步所用,在云端根目录下
@@ -286,7 +288,7 @@ public class SecondActivity extends AppCompatActivity {
         myHandler.sendMessage(msg);
     }
     /**
-     * 上传文件(保证是文件而不是文件夹,否则出错)
+     * 上传文件(需要保证是文件而不是文件夹,否则出错)
      * @param strFileDir(本地绝对路径)
      * @param strFileName
      * @param uploadPath(云平台父亲目录路径)
@@ -321,7 +323,7 @@ public class SecondActivity extends AppCompatActivity {
     }
 
     /**
-     * 更新文件(比上传文件多了一个参数:在云平台上的目标更新文件)
+     * 更新文件(比上传文件多了一个参数:在云平台上的目标更新文件Target)
      * @param strFileDir
      * @param strFileName
      * @param strRelativeDirpath
