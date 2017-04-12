@@ -22,7 +22,7 @@ public class FileSnapshot {
      * @param context
      * @param strFilePath
      */
-    public static void getFileList(Context context, String strFilePath,Handler handler) {
+    public static void traverseFile(Context context, String strFilePath, Handler handler) {
         File srcFile = new File(strFilePath);
         if (srcFile.canRead()) {
             System.out.println(srcFile.getAbsolutePath());
@@ -32,12 +32,12 @@ public class FileSnapshot {
                 FileRooter.chmodList(context,777,"chmodAccess",srcFile.getAbsolutePath());
                 File[] files = srcFile.listFiles();
                 for (int i = 0; i < files.length; i++) {
-                    getFileList(context, files[i].getAbsolutePath(),handler);
+                    traverseFile(context, files[i].getAbsolutePath(), handler);
                 }
-                //回滚之前的权限
-                if(!rollBackChmodAccess(context,strFilePath)){
-                    System.out.println("文件权限回滚失败!");
-                }
+//                //回滚之前的权限
+//                if(!rollBackChmodAccess(context,strFilePath)){
+//                    System.out.println("文件权限回滚失败!");
+//                }
             } else {
                 storeToSharedPreference(context, srcFile);
                 Message message = handler.obtainMessage();
@@ -46,6 +46,27 @@ public class FileSnapshot {
                 bundle.putString("filePath", srcFile.getAbsolutePath());
                 message.setData(bundle);
                 handler.sendMessage(message);
+                System.out.println(srcFile.getAbsolutePath());
+            }
+        }
+    }
+
+    /**
+     * 云端同步到本地且未进行过备份,需要chmod本地文件777
+     * @param strFilePath
+     */
+    public static void initSyncChmodFile(Context context,String strFilePath){
+        File srcFile = new File(strFilePath);
+        if (srcFile.canRead()) {
+            System.out.println(srcFile.getAbsolutePath());
+            if (srcFile.isDirectory()) {
+                //作为目录的文件把目录下的文件都chmod一遍
+                FileRooter.chmodList(context,777,"chmodAccess",srcFile.getAbsolutePath());
+                File[] files = srcFile.listFiles();
+                for (int i = 0; i < files.length; i++) {
+                    initSyncChmodFile(context,files[i].getAbsolutePath());
+                }
+            } else {
                 System.out.println(srcFile.getAbsolutePath());
             }
         }
@@ -87,23 +108,26 @@ public class FileSnapshot {
         editorChange.commit();
         editorBackup.commit();
         String strTempMd5= sharedPrefsBackupMd5.getString(strFilePath, "null");//null代表返回的缺省值
-        if(strTempMd5.equals("null")){
-            //未在backupMd5中,第一次上传该文件
-            SecondActivity.uploadFile("upload", srcFile.getAbsolutePath(),
-                    srcFile.getName(), srcFile.getParent());
-            strMd5 = common.getFileMD5(srcFile);
-            editorBackup.putString(strFilePath, strMd5);
-            editorBackup.commit();
-        }
-        else if(!strTempMd5.equals(strMd5)){
-            //之前上传过文件,覆盖云盘文件
-            SecondActivity.uploadFile("update",srcFile.getAbsolutePath(),
-                    srcFile.getName(),srcFile.getParent());
-            strMd5 = common.getFileMD5(srcFile);
-            editorBackup.putString(strFilePath, strMd5);
-            editorBackup.commit();
-            editorChange.putString(strFilePath, strMd5);//将更改的文件列表存入changeMd5,,该文件用作以后同步的文件清单用
-            editorChange.commit();
+        if(strTempMd5.equals("null")||!strTempMd5.equals(strMd5)) {
+            if (SecondActivity.isFileExistOnCloud(strFilePath)) {
+                SecondActivity.uploadFile("update", srcFile.getAbsolutePath(),
+                        srcFile.getName(), srcFile.getParent());
+            } else {
+                SecondActivity.uploadFile("upload", srcFile.getAbsolutePath(),
+                        srcFile.getName(), srcFile.getParent());
+            }
+            if (strTempMd5.equals("null")) {
+                //未在backupMd5中,第一次上传该文件
+                strMd5 = common.getFileMD5(srcFile);
+                editorBackup.putString(strFilePath, strMd5);
+                editorBackup.commit();
+            } else if (!strTempMd5.equals(strMd5)) {
+                strMd5 = common.getFileMD5(srcFile);
+                editorBackup.putString(strFilePath, strMd5);
+                editorBackup.commit();
+                editorChange.putString(strFilePath, strMd5);//将更改的文件列表存入changeMd5,,该文件用作以后同步的文件清单用
+                editorChange.commit();
+            }
         }
     }
 }

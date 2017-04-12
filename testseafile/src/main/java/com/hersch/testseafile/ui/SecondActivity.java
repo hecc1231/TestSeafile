@@ -6,10 +6,8 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.support.v4.app.Fragment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
@@ -21,7 +19,6 @@ import com.hersch.testseafile.R;
 import com.hersch.testseafile.net.HttpRequest;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -51,7 +48,7 @@ public class SecondActivity extends AppCompatActivity {
     static String strMiddleFile = "\"\r\nContent-Type: application/octet-stream\r\n\r\n";
     public static String strRootId = MainActivity.strRootId;
     public static byte[] m_binArray = null;
-    static String strCurrentPath = "/data/data/com.hersch.testseafile";
+    public static String strCurrentPath = "/data/data/com.hersch.testseafile";
     static String strFileDir = "/data/data/com.hersch.testseafile/data/data/com.tencent.mm/";
     Button btnSync;
     Button btnFileChoose;
@@ -60,8 +57,6 @@ public class SecondActivity extends AppCompatActivity {
     TextView tvFileList;
     TextView tvFileScanner;
     Context context;
-
-    boolean flagTestClick = false;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -84,40 +79,19 @@ public class SecondActivity extends AppCompatActivity {
         listTraverseFile = new ArrayList<String>();
         listTraverseFile.add("/data/data/com.tencent.mm/shared_prefs");
         listTraverseFile.add("/data/data/com.tencent.mm/MicroMsg");
-       // listTraverseFile.add("/storage/emulated/0/tencent/MicroMsg");
+        listTraverseFile.add("/storage/emulated/0/tencent/MicroMsg");
         tvFileScanner=(TextView)findViewById(R.id.tvFileScanner);
         btnSnapshot = (Button) findViewById(R.id.btnSnapshot);
         btnSnapshot.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                FileSnapshot.differSize = FileSnapshot.fileSize = 0;
-                btnSnapshot.setText("数据备份中.....");
-                btnSnapshot.setEnabled(false);
-                if (CustomProcess.isAppExist(getApplicationContext(), processName)) {
-                    //手机上存在微信应用才进行备份
-                    if (listTraverseFile.size() > 0) {
-                        //选择备份的文件夹
-                        new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                initPreDirectoryOnCloud();
-                                FileRooter.chmodDirectory( getApplicationContext(),777,"chmodAccess",strProcessPath);
-                                for (String s : listTraverseFile) {
-                                    FileRooter.chmodDirectory(context,777,"chmodAccess",s);
-                                    FileSnapshot.getFileList(SecondActivity.this, s, myHandler);
-                                    FileSnapshot.rollBackChmodAccess(getApplicationContext(),s);
-                                }
-                                FileSnapshot.rollBackChmodAccess(getApplicationContext(),strProcessPath);
-                                syncSharedPrefsToCloud("backupMd5.xml");//将备份后的md文件备份到云端
-                                syncSharedPrefsToCloud("changeMd5.xml");
-                                syncSharedPrefsToCloud("chmodAccess.xml");
-                                sendMsg(MSG_COMPLETE_BACKUP);
-                            }
-                        }).start();
-                    } else {
-                        Toast.makeText(SecondActivity.this, "请选择备份文件夹", Toast.LENGTH_SHORT).show();
-                    }
+                if (CustomProcess.isProcessRunning(context) || CustomProcess.isServiceRunning(context)) {
+                    //当前微信正在运行
+                    createBackUpDialg();//弹出确认框
+                } else {
+                    backupToSeafile();
                 }
+
             }
         });
         btnSync = (Button) findViewById(R.id.btnSync);
@@ -127,7 +101,7 @@ public class SecondActivity extends AppCompatActivity {
                 Context context = getApplicationContext();
                 if (CustomProcess.isProcessRunning(context) || CustomProcess.isServiceRunning(context)) {
                     //当前微信正在运行
-                    createDialog();//弹出确认框
+                    createSyncDialg();//弹出确认框
                 } else {
                     //syncFileToLocal();//同步到本地文件夹
                     syncFileToMsg();
@@ -138,16 +112,6 @@ public class SecondActivity extends AppCompatActivity {
         btnTest.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                File file = new File("/data/data/com.tencent.mm/MicroMsg");
-//                Log.i("ls",""+file.setExecutable(true,false));
-//                new Thread(new Runnable() {
-//                    @Override
-//                    public void run() {
-//                        FileRooter.sudo("/data/data/com.tencent.mm/MicroMsg");
-//                    }
-//                }).start();
-//            }
-//        });
             }
         });
     }
@@ -176,7 +140,7 @@ public class SecondActivity extends AppCompatActivity {
     /**
      * 弹出确认关闭微信的窗口
      */
-    void createDialog() {
+    void createSyncDialg() {
         AlertDialog.Builder builder = new AlertDialog.Builder(SecondActivity.this);
         builder.setMessage("检测到微信正在运行,确认退出微信开始同步数据吗？");
         builder.setTitle("提示");
@@ -196,7 +160,53 @@ public class SecondActivity extends AppCompatActivity {
         });
         builder.create().show();
     }
-
+    void createBackUpDialg(){
+        AlertDialog.Builder builder = new AlertDialog.Builder(SecondActivity.this);
+        builder.setMessage("检测到微信正在运行,确认退出微信开始备份数据吗？");
+        builder.setTitle("提示");
+        builder.setPositiveButton("确认", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                CustomProcess.kill(processName);
+                backupToSeafile();
+            }
+        });
+        builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+        builder.create().show();
+    }
+    void backupToSeafile(){
+        btnSnapshot.setText("数据备份中.....");
+        btnSnapshot.setEnabled(false);
+        if (listTraverseFile.size() > 0) {
+            //选择备份的文件夹
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    initPreDirectoryOnCloud();
+                    FileRooter.chmodRootDirectory(getApplicationContext(), 777, "chmodAccess", strProcessPath);
+                    for (String s : listTraverseFile) {
+                        FileRooter.chmodRootDirectory(context, 777, "chmodAccess", s);
+                        FileSnapshot.traverseFile(SecondActivity.this, s, myHandler);
+                        //FileSnapshot.rollBackChmodAccess(getApplicationContext(),s);
+                    }
+                    //FileSnapshot.rollBackChmodAccess(getApplicationContext(),strProcessPath);
+                    syncSharedPrefsToCloud("backupMd5.xml");//将备份后的md文件备份到云端
+                    syncSharedPrefsToCloud("changeMd5.xml");
+                    syncSharedPrefsToCloud("chmodAccess.xml");
+                    sendMsg(MSG_COMPLETE_BACKUP);
+                }
+            }).start();
+        }
+        else {
+            Toast.makeText(SecondActivity.this, "请选择备份文件夹", Toast.LENGTH_SHORT).show();
+        }
+    }
     /**
      * 同步到微信
      */
@@ -211,15 +221,16 @@ public class SecondActivity extends AppCompatActivity {
                 File backupMd5File = new File(strCurrentPath+"/shared_prefs/backupMd5.xml");
                 File chmodAccessFile = new File(strCurrentPath+"/shared_prefs/chmodAccess.backup.xml");
                 SharedPreferences backupMd5Prefs = context.getSharedPreferences("backupMd5", Context.MODE_PRIVATE);
-                SharedPreferences changeMd5Prefs = context.getSharedPreferences("changeMd5",Context.MODE_PRIVATE);
+                SharedPreferences changeMd5Prefs = context.getSharedPreferences("changeMd5", Context.MODE_PRIVATE);
                 SharedPreferences chmodAccessPrefs = context.getSharedPreferences("chmodAccess", Context.MODE_PRIVATE);
                 SharedPreferences.Editor backupMd5Editor = backupMd5Prefs.edit();
                 SharedPreferences.Editor changeMd5Editor = changeMd5Prefs.edit();
                 SharedPreferences.Editor chmodAccessEditor = chmodAccessPrefs.edit();
                 if(isFileExistOnCloud("/changeMd5.xml")) {
                     //在云端进行过备份
+                    List<Integer> chmodIntList;
                     if (!changeMd5File.exists()) {
-                        //本地不存在changeMd5说明未进行过备份需要创建sharedPrefs
+                        //本地不存在changeMd5说明未进行过备份
                         backupMd5Editor.commit();
                         changeMd5Editor.commit();
                         chmodAccessEditor.commit();
@@ -230,31 +241,37 @@ public class SecondActivity extends AppCompatActivity {
                         backupMd5Editor.commit();
                         changeMd5Editor.commit();
                         chmodAccessEditor.commit();
-                        Map<String, ?> map = backupMd5Prefs.getAll();
+                        for (String s : listTraverseFile) {
+                            FileRooter.chmodRootDirectory(context, 777, "chmodAccess", s);
+                            FileSnapshot.initSyncChmodFile(SecondActivity.this, s);
+                        }
+                        Map<String, ?> map = backupMd5Prefs.getAll();//存放所有文件的md5值
                         for (String key : map.keySet()) {
-                            //保存在app目录下
-                            new File(strCurrentPath+key).getParentFile().mkdirs();
-                            downloadFile(strCurrentPath + key, key);
+                            //将云端文件保存在app目录下
+                            downloadFile(key, key);
                             System.out.println(key);
-                            int fileAccessNum = FileRooter.getFileAccessNum(key);
-                            FileRooter.storeToChmodAccessPrefs(context,"chmodAccessBackUp",key,fileAccessNum);
                         }
-                    } else {
-                        //代表云端的文件本地都有
-                        Map<String, ?> strFileMap = changeMd5Prefs.getAll();
-                        for (String key : strFileMap.keySet()) {
-//                            if(!srcFile.canRead()||!srcFile.canWrite()
-//                                    ||!srcFile.canExecute()){
-//                                FileRooter.chmodDirectory(777,srcFile.getAbsolutePath(),context);
-//                            }
-                            //downloadFile(key, key);//覆盖到本地
-                            //System.out.println(key);
-                            new File(strCurrentPath+key).getParentFile().mkdirs();
-                            downloadFile(strCurrentPath + key, key);
+                        chmodIntList = FileRooter.getFilesAccessNum(context,map);
+                        int index = 0;
+                        for(String key: map.keySet()){
+                            FileRooter.storeToChmodAccessPrefs(context,"chmodAccessBackUp",strCurrentPath+key,chmodIntList.get(index++));
+                        }
+                        FileRooter.syncChmodAccess(context,map);//chmod同步文件清单里的文件权限更改不了???
+                    }
+                    else { //代表云端的文件和本地相同
+                        Map<String, ?> map = changeMd5Prefs.getAll();
+                        FileRooter.chmodFiles(777,map);//将同步的文件批量chmod
+                        for (String key : map.keySet()) {
+                            downloadFile(key, key);
                             System.out.println(key);
-                            int fileAccessNum = FileRooter.getFileAccessNum(key);
-                            FileRooter.storeToChmodAccessPrefs(context, "chmodAccessBackUp", key, fileAccessNum);
                         }
+                        chmodIntList = FileRooter.getFilesAccessNum(context,map);//调用adbshell获取从云端同步下来的文件的权限位并存入List中
+                        int index = 0;
+                        for(String key: map.keySet()){
+                            //权限位存入chmodAccessBackUp
+                            FileRooter.storeToChmodAccessPrefs(context, "chmodAccessBackUp", strCurrentPath + key, chmodIntList.get(index++));
+                        }
+                        FileRooter.syncChmodAccess(context,map);//chmod同步文件清单里的文件权限更改不了
                     }
                     sendMsg(MSG_COMPLETE_SYNC);
                 }
@@ -282,7 +299,7 @@ public class SecondActivity extends AppCompatActivity {
      * 子线程更新UI消息
      * @param msgType
      */
-    void sendMsg(int msgType){
+    private void sendMsg(int msgType){
         Message msg = Message.obtain();
         msg.what = msgType;
         myHandler.sendMessage(msg);
@@ -321,7 +338,6 @@ public class SecondActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
-
     /**
      * 更新文件(比上传文件多了一个参数:在云平台上的目标更新文件Target)
      * @param strFileDir
@@ -372,7 +388,6 @@ public class SecondActivity extends AppCompatActivity {
                 strEndFile.length());
         return m_binArray;
     }
-
     /**
      * 上传文件
      * @param strFileDir

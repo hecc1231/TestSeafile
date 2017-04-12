@@ -3,13 +3,17 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
 
+import com.hersch.testseafile.ui.SecondActivity;
+
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -19,6 +23,25 @@ public class FileRooter {
     static Process process = null;
     static DataOutputStream dataOutputStream = null;
     static BufferedReader bufferedReader = null;
+    /**
+     * chmod单个目录或者文件
+     * @param accessNum
+     * @param filePath
+     * @param context
+     */
+    public static void chmodRootDirectory(Context context, int accessNum, String strPrefsName, String filePath){
+        initProcess();
+        cmdRootDirectory(context, accessNum, strPrefsName, filePath);
+    }
+    public static void requestRoot(){
+        initProcess();
+        try{
+            process = Runtime.getRuntime().exec("su");
+            process.destroy();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
     /**
      * 初始化进程
      */
@@ -30,18 +53,6 @@ public class FileRooter {
                 e.printStackTrace();
             }
     }
-
-    /**
-     * chmod单个目录或者文件
-     * @param accessNum
-     * @param filePath
-     * @param context
-     */
-    public static void chmodDirectory(Context context,int accessNum,String strPrefsName,String filePath){
-        initProcess();
-        cmdRootDirectory(context,accessNum,strPrefsName,filePath);
-    }
-
     /**
      *将传入的目录参数下的文件列表都chmod为777
      * @param accessNum
@@ -52,60 +63,124 @@ public class FileRooter {
         initProcess();
         cmd(context, accessNum, strPrefsName, filePath);
     }
-
+    public static void chmodFile(int accessNum,String strFilePath){
+        initProcess();
+        try {
+            process = Runtime.getRuntime().exec("su");
+            dataOutputStream = new DataOutputStream(process.getOutputStream());
+            dataOutputStream.writeBytes("chmod " + accessNum + " " + strFilePath + "\n");
+            dataOutputStream.writeBytes("exit\n");
+            dataOutputStream.flush();
+            process.waitFor();
+        } catch (Exception e){
+        }finally {
+            try {
+                if(dataOutputStream!=null){
+                    dataOutputStream.close();
+                }
+                process.destroy();
+            }catch (IOException e){
+                System.out.println("文件chmod失败");
+            }
+        }
+    }
+    public static void chmodFiles(int accessNum,Map<String,?> map){
+        initProcess();
+        try {
+            process = Runtime.getRuntime().exec("su");
+            dataOutputStream = new DataOutputStream(process.getOutputStream());
+            for(String key:map.keySet()) {
+                dataOutputStream.writeBytes("chmod " + accessNum + " " + key + "\n");
+            }
+            dataOutputStream.writeBytes("exit\n");
+            dataOutputStream.flush();
+            process.waitFor();
+        } catch (Exception e){
+        }finally {
+            try {
+                if(dataOutputStream!=null){
+                    dataOutputStream.close();
+                }
+                process.destroy();
+            }catch (IOException e){
+                System.out.println("文件chmod失败");
+            }
+        }
+    }
+    /**
+     * 将云端同步下来的文件列表的权限位根据chmodAccess来还原文件权限
+     * @param map
+     */
+    public static void syncChmodAccess(Context context,Map<String,?>map){
+        initProcess();
+        try {
+            process = Runtime.getRuntime().exec("su");
+            dataOutputStream = new DataOutputStream(process.getOutputStream());
+            for(String key:map.keySet()) {
+                SharedPreferences chmodSharedPrefs = context.getSharedPreferences("chmodAccess",Context.MODE_PRIVATE);
+                int accessNum = chmodSharedPrefs.getInt(key,-1);
+                if(accessNum!=-1){
+                    //还原文件的最初权限位
+                    dataOutputStream.writeBytes("chmod " + accessNum + " " + key + "\n");
+                    System.out.println(key+" "+accessNum);
+                }
+                else{
+                    System.out.println(key+"同步权限位失败");
+                }
+            }
+            dataOutputStream.writeBytes("exit\n");
+            dataOutputStream.flush();
+            process.waitFor();
+        } catch (Exception e){
+        }finally {
+            try {
+                if(dataOutputStream!=null){
+                    dataOutputStream.close();
+                }
+                process.destroy();
+            }catch (IOException e){
+                System.out.println("恢复权限失败");
+            }
+        }
+    }
     /**
      * 获取文件的权限位信息
+     * 该函数dataOutputStream和process均未关闭记得调用后关闭dataOutputStream和关闭process
      * @return
      */
-    public static int getFileAccessNum(String strCurrentDir){
-        String str = null;
+    public static List<Integer> getFilesAccessNum(Context context,Map<String,?>maps){
+        List<Integer>chmodIntList = new ArrayList<>();
+        //SharedPreferences chmodPrefs = context.getSharedPreferences("chmodAccess",Context.MODE_PRIVATE);
         try {
             process = Runtime.getRuntime().exec("su");
             bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             dataOutputStream = new DataOutputStream(process.getOutputStream());
-            dataOutputStream.writeBytes("ls -l -d " + strCurrentDir+"\n");
-            str = bufferedReader.readLine();
-            System.out.println(str);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return sumChmodAccess(str);
-    }
-    /**
-     * 用来获取根文件夹权限位信息并存入prefs如MicroMsg和shared_prefs
-     * @param context
-     * @param accessNum
-     * @param strCurrentDir
-     */
-    private static void cmdRootDirectory(Context context,int accessNum,String strPrefsName,String strCurrentDir){
-        File srcFile = new File(strCurrentDir);
-        try {
-//            process = Runtime.getRuntime().exec("su");
-//            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-//            dataOutputStream = new DataOutputStream(process.getOutputStream());
-//            dataOutputStream.writeBytes("ls -l -d " + strCurrentDir+"\n");
-//            String str = null;
-//            str = bufferedReader.readLine();
-//            System.out.println(str);
-            int fileAccessNum = getFileAccessNum(strCurrentDir);
-            storeToChmodAccessPrefs(context, strPrefsName, srcFile.getAbsolutePath(), fileAccessNum);
-            dataOutputStream.writeBytes("chmod " + accessNum + " " + srcFile.getAbsolutePath() + "\n");
+            for(String key:maps.keySet()) {
+                dataOutputStream.writeBytes("ls -l -d " + key + "\n");
+                String str = null;
+                str = bufferedReader.readLine();
+                System.out.println(str);
+                chmodIntList.add(sumChmodAccess(str));
+            }
             dataOutputStream.writeBytes("exit\n");
             dataOutputStream.flush();
-            bufferedReader.close();
             process.waitFor();
-        } catch (Exception e) {
+        } catch (IOException e){
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         } finally {
             try {
-                if (dataOutputStream != null) {
+                if(dataOutputStream!=null){
                     dataOutputStream.close();
                 }
                 process.destroy();
-            } catch (Exception e) {
+            }catch (IOException e){
+                e.printStackTrace();
             }
         }
+        return chmodIntList;
     }
-
     /**
      * 调用adbshell实现目录下所有文件的777chmod
      * @param context
@@ -144,6 +219,50 @@ public class FileRooter {
                 process.destroy();
             } catch (Exception e) {
             }
+        }
+    }
+    /**
+     * 用来获取根文件夹权限位信息并存入prefs如MicroMsg和shared_prefs
+     * @param context
+     * @param accessNum
+     * @param strCurrentDir
+     */
+    private static void cmdRootDirectory(Context context,int accessNum,String strPrefsName,String strCurrentDir){
+        File srcFile = new File(strCurrentDir);
+        try {
+            process = Runtime.getRuntime().exec("su");
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            dataOutputStream = new DataOutputStream(process.getOutputStream());
+            dataOutputStream.writeBytes("ls -l -d " + strCurrentDir+"\n");
+            String str = null;
+            str = bufferedReader.readLine();
+            System.out.println(str);
+            storeToChmodAccessPrefs(context, strPrefsName, srcFile.getAbsolutePath(), sumChmodAccess(str));
+            dataOutputStream.writeBytes("chmod " + accessNum + " " + srcFile.getAbsolutePath() + "\n");
+            dataOutputStream.writeBytes("exit\n");
+            dataOutputStream.flush();
+            bufferedReader.close();
+            process.waitFor();
+        } catch (Exception e) {
+        } finally {
+            try {
+                if (dataOutputStream != null) {
+                    dataOutputStream.close();
+                }
+                process.destroy();
+            } catch (Exception e) {
+            }
+        }
+    }
+    public static void closeProcess(){
+        try {
+            if (process != null) {
+                // use exitValue() to determine if process is still running.
+                process.exitValue();
+            }
+        } catch (IllegalThreadStateException e) {
+            // process is still running, kill it.
+            process.destroy();
         }
     }
     private static int sumChmodAccess(String s){

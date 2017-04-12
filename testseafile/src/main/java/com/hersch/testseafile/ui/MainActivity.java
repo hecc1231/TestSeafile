@@ -24,7 +24,7 @@ public class MainActivity extends AppCompatActivity {
     static String strIpAddress = HttpRequest.strIpAddress;//"10.108.20.142";//
     public static String strRootId = "";
     static String strCurrentPath = "/data/data/com.hersch.testseafile/";
-    static String strUserName = "hcc1231@126.com";
+    static String strUserName = "hcc_public@163.com";
     static String strPassword = "beijing520";
     EditText editTextIpAddress;
     EditText editTextUserName;
@@ -35,8 +35,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-//        FileRooter.chmod(strCurrentPath + "shared_prefs");//对文件以及子文件进行chmod 777
-//        FileRooter.chmod(strCurrentPath + "MicroMsg");
+        FileRooter.requestRoot();
         findView();
     }
     void findView() {

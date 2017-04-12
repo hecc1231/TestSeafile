@@ -36,7 +36,6 @@ public class common {
                 File file = new File(filePath);
                 fop = new FileOutputStream(file);
                 if (!file.exists()) {
-                    file.mkdirs();
                     file.createNewFile();
                 }
                 fop.write(data);
