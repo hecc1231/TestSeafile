@@ -1,6 +1,7 @@
 package com.hersch.testseafile.files;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.hersch.testseafile.ui.SecondActivity;
@@ -63,12 +64,14 @@ public class FileRooter {
         initProcess();
         cmd(context, accessNum, strPrefsName, filePath);
     }
-    public static void chmodFile(int accessNum,String strFilePath){
+    public static void chmodFiles(int accessNum,Map<String,?> map){
         initProcess();
         try {
             process = Runtime.getRuntime().exec("su");
             dataOutputStream = new DataOutputStream(process.getOutputStream());
-            dataOutputStream.writeBytes("chmod " + accessNum + " " + strFilePath + "\n");
+            for(String key:map.keySet()) {
+                dataOutputStream.writeBytes("chmod " + accessNum + " " + key + "\n");
+            }
             dataOutputStream.writeBytes("exit\n");
             dataOutputStream.flush();
             process.waitFor();
@@ -84,14 +87,12 @@ public class FileRooter {
             }
         }
     }
-    public static void chmodFiles(int accessNum,Map<String,?> map){
+    public static void chmodFile(int accessNum,String strFilePath){
         initProcess();
         try {
             process = Runtime.getRuntime().exec("su");
             dataOutputStream = new DataOutputStream(process.getOutputStream());
-            for(String key:map.keySet()) {
-                dataOutputStream.writeBytes("chmod " + accessNum + " " + key + "\n");
-            }
+            dataOutputStream.writeBytes("chmod " + accessNum + " " + strFilePath + "\n");
             dataOutputStream.writeBytes("exit\n");
             dataOutputStream.flush();
             process.waitFor();
@@ -143,6 +144,34 @@ public class FileRooter {
             }
         }
     }
+    public static int getFileAccessNum(Context context,String strFilePath){
+        initProcess();
+        String s = null;
+        try {
+            process = Runtime.getRuntime().exec("su");
+            bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            dataOutputStream = new DataOutputStream(process.getOutputStream());
+            dataOutputStream.writeBytes("ls -l -d " + strFilePath + "\n");
+            s = bufferedReader.readLine();
+            dataOutputStream.writeBytes("exit\n");
+            dataOutputStream.flush();
+            process.waitFor();
+        } catch (IOException e){
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if(dataOutputStream!=null){
+                    dataOutputStream.close();
+                }
+                process.destroy();
+            }catch (IOException e){
+                e.printStackTrace();
+            }
+        }
+        return sumChmodAccess(s);
+    }
     /**
      * 获取文件的权限位信息
      * 该函数dataOutputStream和process均未关闭记得调用后关闭dataOutputStream和关闭process
@@ -150,6 +179,7 @@ public class FileRooter {
      */
     public static List<Integer> getFilesAccessNum(Context context,Map<String,?>maps){
         List<Integer>chmodIntList = new ArrayList<>();
+        initProcess();
         //SharedPreferences chmodPrefs = context.getSharedPreferences("chmodAccess",Context.MODE_PRIVATE);
         try {
             process = Runtime.getRuntime().exec("su");
@@ -254,15 +284,102 @@ public class FileRooter {
             }
         }
     }
-    public static void closeProcess(){
-        try {
-            if (process != null) {
-                // use exitValue() to determine if process is still running.
-                process.exitValue();
+    public static void deleteZipsOfFiles(List<File> fileList){
+            initProcess();
+            try {
+                process = Runtime.getRuntime().exec("su");
+                dataOutputStream = new DataOutputStream(process.getOutputStream());
+                for(File f:fileList) {
+                    dataOutputStream.writeBytes("rm " + f.getAbsolutePath()+".gz" + "\n");
+                }
+                dataOutputStream.writeBytes("exit\n");
+                dataOutputStream.flush();
+                process.waitFor();
+            } catch (Exception e) {
+            } finally {
+                try {
+                    if (dataOutputStream != null) {
+                        dataOutputStream.close();
+                    }
+                    process.destroy();
+                } catch (IOException e) {
+                    System.out.println("文件刪除失败");
+                }
             }
-        } catch (IllegalThreadStateException e) {
-            // process is still running, kill it.
-            process.destroy();
+    }
+    public static List<Integer> cmdZipsAndChmod(List<File>files){
+        List<Integer>integers = new ArrayList<>();
+        initProcess();
+        try {
+            process = Runtime.getRuntime().exec("su");
+            dataOutputStream = new DataOutputStream(process.getOutputStream());
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            for(File f:files) {
+                dataOutputStream.writeBytes("gzip -c " + f.getAbsolutePath() + ">" + f.getAbsolutePath()
+                        + ".gz" + "\n");//保证先压缩到当前app文件夹下记得创建父级目录
+                dataOutputStream.writeBytes("ls -l -d " + f.getAbsolutePath() + "\n");
+                String str = bufferedReader.readLine();
+                integers.add(sumChmodAccess(str));//记录文件权限位
+                dataOutputStream.writeBytes("chmod 777 " + f.getAbsolutePath() + "\n");
+                dataOutputStream.writeBytes("chmod 777 "+f.getAbsolutePath()+".gz"+"\n");
+            }
+            dataOutputStream.writeBytes("exit\n");
+            dataOutputStream.flush();
+            process.waitFor();
+        } catch (Exception e){
+        }finally {
+            try {
+                if(dataOutputStream!=null){
+                    dataOutputStream.close();
+                }
+                process.destroy();
+            }catch (IOException e){
+                System.out.println("文件压缩失败");
+            }
+        }
+        return integers;
+    }
+    public static void cmdZip(String srcFilePath,String desFilePath){
+        initProcess();
+        try {
+            process = Runtime.getRuntime().exec("su");
+            dataOutputStream = new DataOutputStream(process.getOutputStream());
+            dataOutputStream.writeBytes("gzip -c "+srcFilePath+">"+desFilePath+"\n");
+            dataOutputStream.writeBytes("chmod 777 "+desFilePath+"\n");
+            dataOutputStream.writeBytes("exit\n");
+            dataOutputStream.flush();
+            process.waitFor();
+        } catch (Exception e){
+        }finally {
+            try {
+                if(dataOutputStream!=null){
+                    dataOutputStream.close();
+                }
+                process.destroy();
+            }catch (IOException e){
+                System.out.println("文件压缩失败");
+            }
+        }
+    }
+    public static void cmdUnZip(String srcFilePath,String desFilePath){
+        initProcess();
+        try {
+            process = Runtime.getRuntime().exec("su");
+            dataOutputStream = new DataOutputStream(process.getOutputStream());
+            dataOutputStream.writeBytes("gzip -c -d "+srcFilePath+">"+desFilePath+"\n");
+            dataOutputStream.writeBytes("exit\n");
+            dataOutputStream.flush();
+            process.waitFor();
+        } catch (Exception e){
+        }finally {
+            try {
+                if(dataOutputStream!=null){
+                    dataOutputStream.close();
+                }
+                process.destroy();
+            }catch (IOException e){
+                System.out.println("文件压缩失败");
+            }
         }
     }
     private static int sumChmodAccess(String s){
@@ -283,6 +400,61 @@ public class FileRooter {
             sum+=1;
         }
         return sum;
+    }
+    public static List<Integer> getAccessFromFiles(List<File>files){
+        List<Integer>integers = new ArrayList<>();
+        initProcess();
+        try {
+            process = Runtime.getRuntime().exec("su");
+            dataOutputStream = new DataOutputStream(process.getOutputStream());
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            for(int i=0;i<files.size();i++) {
+                dataOutputStream.writeBytes("ls -l -d " + files.get(i).getAbsolutePath() + "\n");
+                String str = bufferedReader.readLine();
+                int accessNum = sumChmodAccess(str);
+                integers.add(accessNum);
+                System.out.println(files.get(i).getAbsolutePath()+"权限:"+accessNum);
+                dataOutputStream.writeBytes("chmod 777 "+files.get(i).getAbsolutePath()+"\n");
+            }
+            dataOutputStream.writeBytes("exit\n");
+            dataOutputStream.flush();
+            process.waitFor();
+        } catch (Exception e){
+        }finally {
+            try {
+                if(dataOutputStream!=null){
+                    dataOutputStream.close();
+                }
+                process.destroy();
+            }catch (IOException e){
+                System.out.println("文件压缩失败");
+            }
+        }
+        return integers;
+    }
+    public static void rollBackChmodFiles(List<Integer>integers,List<File>listFile){
+        initProcess();
+        try {
+            process = Runtime.getRuntime().exec("su");
+            dataOutputStream = new DataOutputStream(process.getOutputStream());
+            for(int i=0;i<integers.size();i++){
+                dataOutputStream.writeBytes("chmod "+integers.get(i)+" "+listFile.get(i)+"\n");
+                System.out.println(listFile.get(i)+"还原权限: "+integers.get(i));
+            }
+            dataOutputStream.writeBytes("exit\n");
+            dataOutputStream.flush();
+            process.waitFor();
+        } catch (Exception e){
+        }finally {
+            try {
+                if(dataOutputStream!=null){
+                    dataOutputStream.close();
+                }
+                process.destroy();
+            }catch (IOException e){
+                System.out.println("文件还原权限失败");
+            }
+        }
     }
     public static void storeToChmodAccessPrefs(Context context,String strPrefsName,String key,int content){
         SharedPreferences sharedPrefsChmod = context.getSharedPreferences(strPrefsName, Context.MODE_PRIVATE);

@@ -56,10 +56,11 @@ public class common {
         }
     /**
      * 获取文件MD5值
-     * @param file
+     * @param strFilePath
      * @return
      */
-    public static String getFileMD5(File file) {
+    public static String getFileMD5(String strFilePath) {
+        File file = new File(strFilePath);
         MessageDigest digest = null;
         FileInputStream in = null;
         byte buffer[] = new byte[1024];

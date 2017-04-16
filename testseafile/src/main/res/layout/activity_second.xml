@@ -60,7 +60,12 @@
         <Button
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/btnTest"
-            android:text="测试"/>
+            android:id="@+id/btnZip"
+            android:text="压缩"/>
+        <Button
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/btnUnZip"
+            android:text="解压缩"/>
     </LinearLayout>
 </LinearLayout>
