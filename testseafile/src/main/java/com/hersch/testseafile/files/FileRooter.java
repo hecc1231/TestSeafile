@@ -290,7 +290,9 @@ public class FileRooter {
                 process = Runtime.getRuntime().exec("su");
                 dataOutputStream = new DataOutputStream(process.getOutputStream());
                 for(File f:fileList) {
-                    dataOutputStream.writeBytes("rm " + f.getAbsolutePath()+".gz" + "\n");
+                    if(!f.getName().equals("EnMicroMsg.db")) {
+                        dataOutputStream.writeBytes("rm " + f.getAbsolutePath() + ".gz" + "\n");
+                    }
                 }
                 dataOutputStream.writeBytes("exit\n");
                 dataOutputStream.flush();
@@ -346,6 +348,29 @@ public class FileRooter {
             dataOutputStream = new DataOutputStream(process.getOutputStream());
             dataOutputStream.writeBytes("gzip -c "+srcFilePath+">"+desFilePath+"\n");
             dataOutputStream.writeBytes("chmod 777 "+desFilePath+"\n");
+            dataOutputStream.writeBytes("exit\n");
+            dataOutputStream.flush();
+            process.waitFor();
+        } catch (Exception e){
+        }finally {
+            try {
+                if(dataOutputStream!=null){
+                    dataOutputStream.close();
+                }
+                process.destroy();
+            }catch (IOException e){
+                System.out.println("文件压缩失败");
+            }
+        }
+    }
+    public static void cmdUnzips(List<String>srcFileList,List<String>desFileList){
+        initProcess();
+        try {
+            process = Runtime.getRuntime().exec("su");
+            dataOutputStream = new DataOutputStream(process.getOutputStream());
+            for(int i=0;i<srcFileList.size();i++) {
+                dataOutputStream.writeBytes("gzip -c -d " + srcFileList.get(i) + ">" + desFileList.get(i) + "\n");
+            }
             dataOutputStream.writeBytes("exit\n");
             dataOutputStream.flush();
             process.waitFor();

@@ -38,6 +38,9 @@ public class SecondActivity extends AppCompatActivity {
     public final static int MSG_BACKUP_FILE_INFO = 3;
     public final static int MSG_FILE_SELECT_CODE = 4;
     public final static int MSG_NOT_SYNC = 5;
+    public static List<Integer>chmodIntList = new ArrayList<>();
+    public static List<File>chmodFileList = new ArrayList<>();
+    public static List<File>deleteZipList = new ArrayList<>();
     static String processName = "com.tencent.mm";
     static String strProcessPath = "/data/data/com.tencent.mm";
     static List<String> listTraverseFile;
@@ -74,12 +77,12 @@ public class SecondActivity extends AppCompatActivity {
         FileSnapshot.createDirectory("/storage/emulated");
         FileSnapshot.createDirectory("/storage/emulated/0");
         FileSnapshot.createDirectory("/storage/emulated/0/tencent");
-        //FileSnapshot.createDirectory("/storage/emulated/0/tencent/MicroMsg");
     }
     void findView() {
         listTraverseFile = new ArrayList<String>();
         listTraverseFile.add("/data/data/com.tencent.mm/MicroMsg");
         listTraverseFile.add("/data/data/com.tencent.mm/shared_prefs");
+        listTraverseFile.add("/storage/emulated/0/tencent/MicroMsg");
         tvFileScanner=(TextView)findViewById(R.id.tvFileScanner);
         btnSnapshot = (Button) findViewById(R.id.btnSnapshot);
         btnSnapshot.setOnClickListener(new View.OnClickListener() {
@@ -224,6 +227,9 @@ public class SecondActivity extends AppCompatActivity {
                 @Override
                 public void run() {
                     initPreDirectoryOnCloud();
+                    chmodFileList.clear();
+                    chmodIntList.clear();
+                    deleteZipList.clear();
                     FileRooter.chmodRootDirectory(getApplicationContext(), 777, "chmodAccess", strProcessPath);
                     for (String s : listTraverseFile) {
                         FileRooter.chmodRootDirectory(context, 777, "chmodAccess", s);
@@ -231,10 +237,22 @@ public class SecondActivity extends AppCompatActivity {
                         FileSnapshot.traverseFileCy(SecondActivity.this, s, myHandler);
                         FileSnapshot.rollBackChmodFile(getApplicationContext(),s);
                     }
-                    FileSnapshot.rollBackChmodFile(getApplicationContext(),strProcessPath);
+                    System.out.println("----->还原文件权限中");
+                    FileSnapshot.rollBackChmodFile(getApplicationContext(), strProcessPath);
+                    FileRooter.rollBackChmodFiles(chmodIntList, chmodFileList);
+                    System.out.println("还原文件权限成功");
+
+                    System.out.println("----->删除文件压缩包中<------");
+                    FileRooter.deleteZipsOfFiles(deleteZipList);
+                    System.out.println("----->删除文件压缩包成功<------");
+
+
+                    System.out.println("---->备份xml到云端....");
                     syncSharedPrefsToCloud("backupMd5.xml");//将备份后的md文件备份到云端
                     syncSharedPrefsToCloud("changeMd5.xml");
                     syncSharedPrefsToCloud("chmodAccess.xml");
+                    System.out.println("----->备份xml完成");
+
                     sendMsg(MSG_COMPLETE_BACKUP);
                 }
             }).start();
@@ -283,15 +301,21 @@ public class SecondActivity extends AppCompatActivity {
                         Map<String, ?> map = changeMd5Prefs.getAll();
                         //Map<String, ?> map = backupMd5Prefs.getAll();//存放所有文件的md5值
                         //FileRooter.chmodFiles(777, map);//将同步的文件批量chmod
+                        List<String>srcZipFilePath = new ArrayList<String>();
+                        List<String>desZipFilePath = new ArrayList<String>();
                         for (String key : map.keySet()) {
                             String zipName = key+".gz";
                             String unZipName = key;
                             new File(strCurrentPath+unZipName).getParentFile().mkdirs();
-                            downloadFile(strCurrentPath+zipName, zipName);//将云端的文件存入当前app中
+                            downloadFile(strCurrentPath + zipName, zipName);//将云端的文件存入当前app中
                             //再将压缩文件存入微信中
-                            //FileRooter.cmdUnZip(strCurrentPath+zipName,unZipName);
-                            System.out.println(unZipName);
+                            srcZipFilePath.add(strCurrentPath+zipName);
+                            desZipFilePath.add(zipName);
+                            System.out.println(zipName+" is downloaded");
                         }
+                        System.out.println("----解压到微信目录----");
+                        FileRooter.cmdUnzips(srcZipFilePath,desZipFilePath);
+                        System.out.println("----sync to Msg successfully!");
                     }
                     sendMsg(MSG_COMPLETE_SYNC);
                 }
