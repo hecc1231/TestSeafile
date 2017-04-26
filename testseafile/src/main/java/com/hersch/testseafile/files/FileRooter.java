@@ -290,9 +290,7 @@ public class FileRooter {
                 process = Runtime.getRuntime().exec("su");
                 dataOutputStream = new DataOutputStream(process.getOutputStream());
                 for(File f:fileList) {
-                    if(!f.getName().equals("EnMicroMsg.db")) {
-                        dataOutputStream.writeBytes("rm " + f.getAbsolutePath() + ".gz" + "\n");
-                    }
+                    dataOutputStream.writeBytes("rm " + f.getAbsolutePath() + ".gz" + "\n");
                 }
                 dataOutputStream.writeBytes("exit\n");
                 dataOutputStream.flush();

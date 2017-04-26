@@ -278,6 +278,8 @@ public class SecondActivity extends AppCompatActivity {
                     //在云端进行过备份
                     List<Integer> chmodIntList;
                     if (!changeMd5File.exists()) {
+                        List<String>srcZipFilePath = new ArrayList<String>();
+                        List<String>desZipFilePath = new ArrayList<String>();
                         //本地不存在changeMd5说明未进行过备份
                         backupMd5Editor.commit();
                         changeMd5Editor.commit();
@@ -293,9 +295,13 @@ public class SecondActivity extends AppCompatActivity {
                             new File(strCurrentPath+unZipName).getParentFile().mkdirs();
                             downloadFile(strCurrentPath+zipName, zipName);//将云端的文件存入当前app中
                             //再将压缩文件存入微信中
-                            FileRooter.cmdUnZip(strCurrentPath+zipName,unZipName);
-                            System.out.println(unZipName);
+                            srcZipFilePath.add(strCurrentPath+zipName);
+                            desZipFilePath.add(unZipName);
                         }
+                        System.out.println("----解压到微信目录----");
+                        System.out.println(srcZipFilePath+"---->"+desZipFilePath);
+                        FileRooter.cmdUnzips(srcZipFilePath,desZipFilePath);
+                        System.out.println("----sync to Msg successfully!");
                     }
                     else { //代表云端的文件和本地相同
                         Map<String, ?> map = changeMd5Prefs.getAll();
@@ -310,10 +316,11 @@ public class SecondActivity extends AppCompatActivity {
                             downloadFile(strCurrentPath + zipName, zipName);//将云端的文件存入当前app中
                             //再将压缩文件存入微信中
                             srcZipFilePath.add(strCurrentPath+zipName);
-                            desZipFilePath.add(zipName);
+                            desZipFilePath.add(unZipName);
                             System.out.println(zipName+" is downloaded");
                         }
                         System.out.println("----解压到微信目录----");
+                        System.out.println(srcZipFilePath+"---->"+desZipFilePath);
                         FileRooter.cmdUnzips(srcZipFilePath,desZipFilePath);
                         System.out.println("----sync to Msg successfully!");
                     }
