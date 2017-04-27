@@ -17,14 +17,18 @@ import android.widget.Toast;
 
 import com.hersch.testseafile.CustomProcess;
 import com.hersch.testseafile.R;
+import com.hersch.testseafile.files.FileDivider;
 import com.hersch.testseafile.net.HttpRequest;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.hersch.testseafile.files.FileRooter;
 import com.hersch.testseafile.files.FileSnapshot;
@@ -53,9 +57,9 @@ public class SecondActivity extends AppCompatActivity {
     public static String strRootId = MainActivity.strRootId;
     public static byte[] m_binArray = null;
     public static String strCurrentPath = "/data/data/com.hersch.testseafile";
-    static String strFileDir = "/data/data/com.hersch.testseafile/data/data/com.tencent.mm/";
     public static int fileSize=0;
     Button btnSync;
+    Button btnTest;
     Button btnSnapshot;
     Button btnZip;
     Button btnUnZip;
@@ -82,7 +86,7 @@ public class SecondActivity extends AppCompatActivity {
         listTraverseFile = new ArrayList<String>();
         listTraverseFile.add("/data/data/com.tencent.mm/MicroMsg");
         listTraverseFile.add("/data/data/com.tencent.mm/shared_prefs");
-        listTraverseFile.add("/storage/emulated/0/tencent/MicroMsg");
+        //listTraverseFile.add("/storage/emulated/0/tencent/MicroMsg");
         tvFileScanner=(TextView)findViewById(R.id.tvFileScanner);
         btnSnapshot = (Button) findViewById(R.id.btnSnapshot);
         btnSnapshot.setOnClickListener(new View.OnClickListener() {
@@ -116,29 +120,68 @@ public class SecondActivity extends AppCompatActivity {
         btnZip.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Context context = getApplicationContext();
-                if (CustomProcess.isProcessRunning(context) || CustomProcess.isServiceRunning(context)) {
-                    //当前微信正在运行
-                    createBackUpDialg();//弹出确认框
-                } else {
-                    //backupToSeafile();
-                    zip();
-                }
-                System.out.println("总共文件大小: " + fileSize);
+//                Context context = getApplicationContext();
+//                if (CustomProcess.isProcessRunning(context) || CustomProcess.isServiceRunning(context)) {
+//                    //当前微信正在运行
+//                    createBackUpDialg();//弹出确认框
+//                } else {
+//                    zip();
+//                }
+//                System.out.println("总共文件大小: " + fileSize);
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        String srcFilePath = strCurrentPath+"/mp3/cc.mp3";//压缩包形式
+                        FileRooter.cmdZip(srcFilePath,srcFilePath+".gz");
+                        FileDivider.split(srcFilePath+".gz");
+                    }
+                }).start();
             }
         });
         btnUnZip = (Button)findViewById(R.id.btnUnZip);
         btnUnZip.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (CustomProcess.isProcessRunning(context) || CustomProcess.isServiceRunning(context)) {
-                    //当前微信正在运行
-                    createSyncDialg();//弹出确认框
-                } else {
-                    //syncFileToLocal();//同步到本地文件夹
-                    unzip();
-                    //syncFileToMsg2();
-                }
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        File file = new File(strCurrentPath+"/out");
+                        if(!file.exists()){
+                            file.mkdir();
+                        }
+                        List<String>subFileList = new ArrayList<String>();
+                        for(int i=0;i<8;i++){
+                            char c = (char)('a'+i);
+                            String s = strCurrentPath+"/mp3/cc.mp3.gz-"+c;
+                            subFileList.add(s);
+                        }
+                        Collections.sort(subFileList);
+                        FileDivider.merge(subFileList);
+                        String srcFilePath = strCurrentPath+"/out/cc.mp3.gz";
+                        String desFilePath = strCurrentPath+"/out/cc.mp3";
+                        FileRooter.cmdUnZip(srcFilePath,desFilePath);
+                    }
+                }).start();
+//                if (CustomProcess.isProcessRunning(context) || CustomProcess.isServiceRunning(context)) {
+//                    //当前微信正在运行
+//                    createSyncDialg();//弹出确认框
+//                } else {
+//                    unzip();
+//                }
+            }
+        });
+        btnTest = (Button)findViewById(R.id.btnTest);
+        btnTest.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        uploadFile("upload",strCurrentPath+"/EnMicroMsg.db.gz","EnMicroMsg.db.gz","/");
+                        downloadFile(strCurrentPath + "/out/EnMicroMsg.db.gz", "/EnMicroMsg.db.gz");
+                        System.out.println("下载成功");
+                    }
+                }).start();
             }
         });
     }
@@ -290,6 +333,7 @@ public class SecondActivity extends AppCompatActivity {
                         changeMd5Editor.commit();
                         Map<String, ?> map = backupMd5Prefs.getAll();//存放所有文件的md5值
                         for (String key : map.keySet()) {
+                            //String zipName = key+".tar";
                             String zipName = key+".gz";
                             String unZipName = key;
                             new File(strCurrentPath+unZipName).getParentFile().mkdirs();
@@ -311,18 +355,16 @@ public class SecondActivity extends AppCompatActivity {
                         List<String>desZipFilePath = new ArrayList<String>();
                         for (String key : map.keySet()) {
                             String zipName = key+".gz";
+                            //String zipName = key+".tar";
                             String unZipName = key;
                             new File(strCurrentPath+unZipName).getParentFile().mkdirs();
                             downloadFile(strCurrentPath + zipName, zipName);//将云端的文件存入当前app中
-                            //再将压缩文件存入微信中
-                            srcZipFilePath.add(strCurrentPath+zipName);
+                            srcZipFilePath.add(strCurrentPath + zipName);//记录暂时的压缩包路径和在微信目录中的路径
                             desZipFilePath.add(unZipName);
                             System.out.println(zipName+" is downloaded");
                         }
                         System.out.println("----解压到微信目录----");
-                        System.out.println(srcZipFilePath+"---->"+desZipFilePath);
                         FileRooter.cmdUnzips(srcZipFilePath,desZipFilePath);
-                        System.out.println("----sync to Msg successfully!");
                     }
                     sendMsg(MSG_COMPLETE_SYNC);
                 }
@@ -369,7 +411,6 @@ public class SecondActivity extends AppCompatActivity {
                         chmodAccessEditor.commit();
                         for (String s : listTraverseFile) {
                             FileRooter.chmodRootDirectory(context, 777, "chmodAccess", s);
-                           // FileSnapshot.initSyncChmodFile(SecondActivity.this, s);
                         }
                         Map<String, ?> map = backupMd5Prefs.getAll();//存放所有文件的md5值
                         for (String key : map.keySet()) {

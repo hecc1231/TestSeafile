@@ -290,6 +290,7 @@ public class FileRooter {
                 process = Runtime.getRuntime().exec("su");
                 dataOutputStream = new DataOutputStream(process.getOutputStream());
                 for(File f:fileList) {
+                    //dataOutputStream.writeBytes("rm " + f.getAbsolutePath() + ".tar" + "\n");
                     dataOutputStream.writeBytes("rm " + f.getAbsolutePath() + ".gz" + "\n");
                 }
                 dataOutputStream.writeBytes("exit\n");
@@ -317,11 +318,22 @@ public class FileRooter {
             for(File f:files) {
                 dataOutputStream.writeBytes("gzip -c " + f.getAbsolutePath() + ">" + f.getAbsolutePath()
                         + ".gz" + "\n");//保证先压缩到当前app文件夹下记得创建父级目录
+                //dataOutputStream.writeBytes("tar -cvf " + f.getAbsolutePath()+".tar " + f.getAbsolutePath()
+                 //       + "\n");//保证先压缩到当前app文件夹下记得创建父级目录
                 dataOutputStream.writeBytes("ls -l -d " + f.getAbsolutePath() + "\n");
                 String str = bufferedReader.readLine();
-                integers.add(sumChmodAccess(str));//记录文件权限位
+                //String str = "";
+                //while((str=bufferedReader.readLine())!=null){
+                 //    if(str.charAt(10)==' '){
+                  //       break;
+                   //  }
+                //}
+                int chmodValue = sumChmodAccess(str);
+                integers.add(chmodValue);//记录文件权限位
+                System.out.println("权限字符:"+str+" "+f.getAbsolutePath()+"权限为"+chmodValue);
                 dataOutputStream.writeBytes("chmod 777 " + f.getAbsolutePath() + "\n");
                 dataOutputStream.writeBytes("chmod 777 "+f.getAbsolutePath()+".gz"+"\n");
+                //dataOutputStream.writeBytes("chmod 777 "+f.getAbsolutePath()+".tar"+"\n");
             }
             dataOutputStream.writeBytes("exit\n");
             dataOutputStream.flush();
@@ -345,6 +357,7 @@ public class FileRooter {
             process = Runtime.getRuntime().exec("su");
             dataOutputStream = new DataOutputStream(process.getOutputStream());
             dataOutputStream.writeBytes("gzip -c "+srcFilePath+">"+desFilePath+"\n");
+            //dataOutputStream.writeBytes("tar -cvf "+desFilePath+" "+srcFilePath+"\n");
             dataOutputStream.writeBytes("chmod 777 "+desFilePath+"\n");
             dataOutputStream.writeBytes("exit\n");
             dataOutputStream.flush();
@@ -356,6 +369,7 @@ public class FileRooter {
                     dataOutputStream.close();
                 }
                 process.destroy();
+                System.out.println("文件压缩成功");
             }catch (IOException e){
                 System.out.println("文件压缩失败");
             }
@@ -367,7 +381,12 @@ public class FileRooter {
             process = Runtime.getRuntime().exec("su");
             dataOutputStream = new DataOutputStream(process.getOutputStream());
             for(int i=0;i<srcFileList.size();i++) {
-                dataOutputStream.writeBytes("gzip -c -d " + srcFileList.get(i) + ">" + desFileList.get(i) + "\n");
+                String srcFilePath = srcFileList.get(i);
+                String desFilePath = desFileList.get(i);
+                dataOutputStream.writeBytes("gzip -c -d " + srcFilePath+ ">" + desFilePath + "\n");
+                //File file = new File(desFileList.get(i));
+                //dataOutputStream.writeBytes("tar -xvf " + srcFilePath + " -C " + file.getParent() + "\n");
+                System.out.println(srcFilePath + "---- unzip to ----" + desFilePath);
             }
             dataOutputStream.writeBytes("exit\n");
             dataOutputStream.flush();
@@ -379,8 +398,9 @@ public class FileRooter {
                     dataOutputStream.close();
                 }
                 process.destroy();
+                System.out.println("文件解压成功");
             }catch (IOException e){
-                System.out.println("文件压缩失败");
+                System.out.println("文件解压失败");
             }
         }
     }
@@ -390,6 +410,7 @@ public class FileRooter {
             process = Runtime.getRuntime().exec("su");
             dataOutputStream = new DataOutputStream(process.getOutputStream());
             dataOutputStream.writeBytes("gzip -c -d "+srcFilePath+">"+desFilePath+"\n");
+            //dataOutputStream.writeBytes("tar -xvf "+srcFilePath+" -C "+desFilePath+"\n");
             dataOutputStream.writeBytes("exit\n");
             dataOutputStream.flush();
             process.waitFor();
@@ -400,8 +421,9 @@ public class FileRooter {
                     dataOutputStream.close();
                 }
                 process.destroy();
+                System.out.println("文件解压成功");
             }catch (IOException e){
-                System.out.println("文件压缩失败");
+                System.out.println("文件解压失败");
             }
         }
     }
@@ -449,8 +471,9 @@ public class FileRooter {
                     dataOutputStream.close();
                 }
                 process.destroy();
+                System.out.println("获取权限成功");
             }catch (IOException e){
-                System.out.println("文件压缩失败");
+                System.out.println("获取权限失败");
             }
         }
         return integers;

@@ -55,17 +55,17 @@
         <Button
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/btnDelete"
-            android:text="删除"/>
-        <Button
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
             android:id="@+id/btnZip"
-            android:text="压缩"/>
+            android:text="Split"/>
         <Button
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:id="@+id/btnUnZip"
-            android:text="解压缩"/>
+            android:text="Merge"/>
+        <Button
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/btnTest"
+            android:text="Test"/>
     </LinearLayout>
 </LinearLayout>

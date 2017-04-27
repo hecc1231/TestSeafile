@@ -47,7 +47,7 @@ public class HttpRequest {
             connection.setRequestProperty("Accept-Encoding", "gzip, deflate, sdch");
             connection.setRequestProperty("Accept-Language", "zh-CN,zh;q=0.8");
             connection.setRequestProperty("Cookie", strCookie);
-            connection.setRequestProperty("Host", strIpAddress+":8000");
+            connection.setRequestProperty("Host", strIpAddress + ":8000");
             connection.connect();
             in = new BufferedReader(new InputStreamReader(
                     connection.getInputStream()));
@@ -88,13 +88,19 @@ public class HttpRequest {
             connection.setRequestProperty("Accept-Encoding", "gzip, deflate, sdch");
             connection.setRequestProperty("Accept-Language", "zh-CN,zh;q=0.8");
             connection.setRequestProperty("Cookie", strCookie);
-            connection.setRequestProperty("Host", strIpAddress+":8000");
+            connection.setRequestProperty("Host", strIpAddress + ":8000");
             connection.connect();
             String length = connection.getHeaderField("Content-Length");
             System.out.println("Content-Length:"+length);
-            m_binArray = new byte[Integer.valueOf(length)];
+            int totalLen = Integer.valueOf(length);
+            m_binArray = new byte[totalLen];
             BufferedInputStream input =new BufferedInputStream(connection.getInputStream());
-            input.read(m_binArray);
+            int readCount = 0;
+            while(readCount<Integer.valueOf(length)) {
+                readCount += input.read(m_binArray, readCount, totalLen - readCount);
+            }
+
+            input.close();
         } catch (Exception e) {
             System.out.println("发送GET请求出现异常！" + e);
             e.printStackTrace();
