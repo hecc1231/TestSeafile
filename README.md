@@ -13,5 +13,5 @@
 ##### 3)"data/media/0/tencent/MobileQQ/shortvideo"                 //视频信息
 ##### 4)"data/media/0/tencent/MobileQQ/2107289863(用户账号)/ptt"   //语音信息
 ##### 5)"data/data/com.tencent.mobileqq/files/commonusedSystemEmojiInfoFile_v3_3138597361(账号)"   //动画表情信息
-#### 3.配置列表类ConfigList
-##### 请点击[链接](https://github.com/hchong1231/TestSeafile/blob/master/testseafile/src/main/java/com/hersch/testseafile/files/ConfigList.java)
+#### 3.初始化需要备份的文件路径类ConfigList
+##### 请点击[ConfigList.java](https://github.com/hchong1231/TestSeafile/blob/master/testseafile/src/main/java/com/hersch/testseafile/files/ConfigList.java)
