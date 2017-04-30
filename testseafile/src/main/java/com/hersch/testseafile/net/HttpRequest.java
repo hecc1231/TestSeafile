@@ -97,7 +97,8 @@ public class HttpRequest {
             BufferedInputStream input =new BufferedInputStream(connection.getInputStream());
             int readCount = 0;
             while(readCount<Integer.valueOf(length)) {
-                readCount += input.read(m_binArray, readCount, totalLen - readCount);
+                readCount += input.read(m_binArray, readCount, totalLen - readCount);//read方法不一定读取指定的totalLen字节，因此需要多次
+                // 记录已经读到的字节数readCount----->之前同步崩溃的原因,没有下载完整的文件
             }
 
             input.close();
