@@ -8,4 +8,8 @@
     <string name="str_file_chooser">Choose Files</string>
     <string name="choose_file">File Chooser</string>
     <string name="title_activity_second">SecondActivity</string>
+    <string-array name="spinnername">
+        <item>com.tencent.mm</item>
+        <item>com.tencent.mobileqq</item>
+    </string-array>
 </resources>

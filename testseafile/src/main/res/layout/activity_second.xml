@@ -15,18 +15,11 @@
         android:layout_weight="1"
         android:gravity="center"
         android:orientation="horizontal">
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_weight="3"
-            android:gravity="center"
-            android:id="@+id/tvFileList"
-            android:text="Please select list of files to backup"
-            android:layout_height="fill_parent" />
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/btnFileChoose"
-            android:text="@string/str_file_chooser"/>
+       <Spinner
+           android:layout_width="fill_parent"
+           android:layout_height="wrap_content"
+           android:id="@+id/spinner">
+       </Spinner>
     </LinearLayout>
     <LinearLayout
         android:layout_weight="2"
@@ -52,20 +45,5 @@
             android:layout_height="wrap_content"
             android:id="@+id/btnSync"
             android:text="同步数据"/>
-        <Button
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/btnZip"
-            android:text="Split"/>
-        <Button
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/btnUnZip"
-            android:text="Merge"/>
-        <Button
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/btnTest"
-            android:text="Test"/>
     </LinearLayout>
 </LinearLayout>

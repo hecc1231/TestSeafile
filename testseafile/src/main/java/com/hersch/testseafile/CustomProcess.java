@@ -16,39 +16,27 @@ import java.util.List;
 public class CustomProcess {
     static Process process;
     static int processNum = 150;
-    static final String ProcessName = "com.tencent.mm";
-    public static boolean isAppExist(Context context,String packgName){
-        PackageManager packageManager = context.getPackageManager();
-        //获取系统所有包名进行比较
-        List<PackageInfo> pinfo = packageManager.getInstalledPackages(0);
-        for (int i = 0; i < pinfo.size(); i++) {
-            if (((PackageInfo) pinfo.get(i)).packageName
-                    .equalsIgnoreCase(packgName))
-                return true;
-        }
-        return false;
-    }
-    public static boolean isProcessRunning(Context context){
+    public static boolean isProcessRunning(Context context,String processName){
         ActivityManager activityManager = (ActivityManager)context.getSystemService(Context.ACTIVITY_SERVICE);
         List<ActivityManager.RunningTaskInfo> runningTaskInfos = activityManager.getRunningTasks(processNum);
         if(runningTaskInfos.size()<=0){
             return false;
         }
         for(ActivityManager.RunningTaskInfo runningTaskInfo:runningTaskInfos){
-            if(runningTaskInfo.baseActivity.getPackageName().equals(ProcessName)){
+            if(runningTaskInfo.baseActivity.getPackageName().equals(processName)){
                 return true;
             }
         }
         return false;
     }
-    public static boolean isServiceRunning(Context context){
+    public static boolean isServiceRunning(Context context,String processName){
         ActivityManager activityManager = (ActivityManager)context.getSystemService(Context.ACTIVITY_SERVICE);
         List<ActivityManager.RunningServiceInfo> runningServiceInfos = activityManager.getRunningServices(processNum);
         if(runningServiceInfos.size()<=0){
             return false;
         }
         for(ActivityManager.RunningServiceInfo runningServiceInfo:runningServiceInfos){
-            if(runningServiceInfo.service.getPackageName().equals(ProcessName)){
+            if(runningServiceInfo.service.getPackageName().equals(processName)){
                 return true;
             }
         }

@@ -212,7 +212,7 @@ public class FileRooter {
                 String str = bufferedReader.readLine();
                 int chmodValue = sumChmodAccess(str);
                 integers.add(chmodValue);//记录文件权限位
-                System.out.println("权限字符:"+str+" "+strFilePath+"权限为"+chmodValue);
+                System.out.println("权限字符:" + str + " " + strFilePath + "权限为" + chmodValue);
                 dataOutputStream.writeBytes("chmod 777 " + strFilePath + "\n");
                 dataOutputStream.writeBytes("chmod 777 "+strFilePath+".gz"+"\n");
             }
@@ -232,13 +232,30 @@ public class FileRooter {
         }
         return integers;
     }
-    public static void cmdZip(String srcFilePath,String desFilePath){
+
+    /**
+     * chmod /data/data/com.tencent.mm 需要把之前的/data和/data/data都chmod
+     * @param files
+     * @return
+     */
+    public static void chmodPreDirPath(List<String>files){
         initProcess();
         try {
             process = Runtime.getRuntime().exec("su");
             dataOutputStream = new DataOutputStream(process.getOutputStream());
-            dataOutputStream.writeBytes("gzip -c "+srcFilePath+">"+desFilePath+"\n");
-            dataOutputStream.writeBytes("chmod 777 "+desFilePath+"\n");
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            for(String strFilePath:files) {
+                dataOutputStream.writeBytes("ls -l -d " + strFilePath + "\n");
+                String str = bufferedReader.readLine();
+                if(str.charAt(10)!=' '){//即当前目录不存在
+                    continue;
+                }
+                int chmodValue = sumChmodAccess(str);
+                SecondActivity.chmodIntList.add(chmodValue);//记录文件权限位
+                SecondActivity.chmodFileList.add(strFilePath);
+                System.out.println("权限字符:" + str + " " + strFilePath + "权限为" + chmodValue);
+                dataOutputStream.writeBytes("chmod 777 " + strFilePath + "\n");
+            }
             dataOutputStream.writeBytes("exit\n");
             dataOutputStream.flush();
             process.waitFor();
@@ -249,8 +266,31 @@ public class FileRooter {
                     dataOutputStream.close();
                 }
                 process.destroy();
-                System.out.println("文件压缩成功");
             }catch (IOException e){
+                System.out.println("文件压缩失败");
+            }
+        }
+    }
+    public static void createDir(List<String>dirList) {
+        initProcess();
+        try {
+            process = Runtime.getRuntime().exec("su");
+            dataOutputStream = new DataOutputStream(process.getOutputStream());
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            for (String strFilePath : dirList) {
+                dataOutputStream.writeBytes("mkdir " + strFilePath + "\n");
+            }
+            dataOutputStream.writeBytes("exit\n");
+            dataOutputStream.flush();
+            process.waitFor();
+        } catch (Exception e) {
+        } finally {
+            try {
+                if (dataOutputStream != null) {
+                    dataOutputStream.close();
+                }
+                process.destroy();
+            } catch (IOException e) {
                 System.out.println("文件压缩失败");
             }
         }
@@ -266,28 +306,6 @@ public class FileRooter {
                 dataOutputStream.writeBytes("gzip -c -d " + srcFilePath+ ">" + desFilePath + "\n");
                 System.out.println(srcFilePath + "---- unzip to ----" + desFilePath);
             }
-            dataOutputStream.writeBytes("exit\n");
-            dataOutputStream.flush();
-            process.waitFor();
-        } catch (Exception e){
-        }finally {
-            try {
-                if(dataOutputStream!=null){
-                    dataOutputStream.close();
-                }
-                process.destroy();
-                System.out.println("文件解压成功");
-            }catch (IOException e){
-                System.out.println("文件解压失败");
-            }
-        }
-    }
-    public static void cmdUnZip(String srcFilePath,String desFilePath){
-        initProcess();
-        try {
-            process = Runtime.getRuntime().exec("su");
-            dataOutputStream = new DataOutputStream(process.getOutputStream());
-            dataOutputStream.writeBytes("gzip -c -d "+srcFilePath+">"+desFilePath+"\n");
             dataOutputStream.writeBytes("exit\n");
             dataOutputStream.flush();
             process.waitFor();
