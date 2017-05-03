@@ -112,6 +112,7 @@ public class SecondActivity extends AppCompatActivity {
         Spinner sp = (Spinner) findViewById(R.id.spinner);
         final ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, list);
         sp.setAdapter(adapter);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         sp.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -187,21 +188,20 @@ public class SecondActivity extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                initPreDirOnCloud();
-                initList();
-                List<String>listTraverseFile = ConfigList.getList(processName);
+                initList();//初始化chmodIntList和chmodFileList
+                initPreDirOnCloud();//在云端创建父级目录如/data/data/com.tencent.mm之前的/data文件和/data/data
+                List<String>listTraverseFile = ConfigList.getList(processName);//获取需要遍历的路径
                 FileRooter.createDir(listTraverseFile);//需要备份的文件夹初始可能不存在需要创建
                 List<String>initDirList = ConfigList.getInitDirList(processName);
-                FileRooter.chmodPreDirPath(initDirList);
+                List<Integer> integers = FileRooter.chmodPreDirPath(initDirList);//对父级目录进行chmod以便可以正常访问子文件
+                for(int i=0;i<integers.size();i++){
+                    chmodIntList.add(integers.get(i));
+                    chmodFileList.add(initDirList.get(i));
+                }
                 for (String s : listTraverseFile) {
-//                    FileRooter.chmodRootDirectory(context, 777, "chmodAccess", s);
-//                    FileSnapshot.createDirectory(s);//在云端创建目录
                     FileSnapshot.traverseFileCy(SecondActivity.this, s, myHandler);
-//                    FileSnapshot.rollBackChmodFile(getApplicationContext(),s);
                 }
                 System.out.println("----->还原文件权限中");
-//                FileSnapshot.rollBackChmodFile(getApplicationContext(), "/data/data/" + processName);
-//                FileSnapshot.rollBackChmodFile(getApplicationContext(), "/data/media/0/tencent/MobileQQ");
                 FileRooter.rollBackChmodFiles(chmodIntList, chmodFileList);
                 System.out.println("----->删除文件压缩包中<------");
                 FileRooter.deleteZipsOfFiles(deleteZipList);
