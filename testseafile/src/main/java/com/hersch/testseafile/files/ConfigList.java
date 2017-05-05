@@ -23,7 +23,7 @@ public class ConfigList {
      * @param packageName
      * @return
      */
-    public static List<String> getInitDirList(String packageName){
+    public static List<String> getInitDirList(String kind,String packageName){
         List<String> s = new ArrayList<>();
         switch (packageName) {
             case "com.tencent.mm":
@@ -45,16 +45,26 @@ public class ConfigList {
                 s.add("/data/data");
                 s.add("/data/data/com.tencent.mobileqq");
                 s.add("/data/data/com.tencent.mobileqq/databases");
+                s.add("/data/data/com.tencent.mobileqq/shared_prefs");
                 s.add("/data/data/com.tencent.mobileqq/files");
                 s.add("/data/media");
                 s.add("/data/media/0");
                 s.add("/data/media/0/tencent");
                 s.add("/data/media/0/tencent/MobileQQ");
                 s.add("/data/media/0/tencent/MobileQQ/diskcache");
+                s.add("/data/media/0/tencent/MobileQQ/data");
                 s.add("/data/media/0/tencent/MobileQQ/shortvideo");
                 break;
         }
-        return s;
+        List<String>cloudList = new ArrayList<>();
+        cloudList.add("/"+packageName);
+        for(String strFilePath:s){
+            cloudList.add("/"+packageName+strFilePath);
+        }
+        if(kind.equals("local")){
+            return s;
+        }
+        return cloudList;
     }
     public static List<String> getList(final String packageName){
         List<String> s = new ArrayList<>();
@@ -62,16 +72,21 @@ public class ConfigList {
             case "com.tencent.mm":
                 s.add("/data/data/com.tencent.mm/MicroMsg");
                 s.add("/data/data/com.tencent.mm/shared_prefs");
-                s.add("/data/data/com.tencent.mm/files");
+                //s.add("/data/data/com.tencent.mm/files");
                 //s.add("/data/media/0/tencent/MicroMsg");
                 s.add("/data/media/0/tencent/vusericon");
                 s.add("/data/media/0/tencent/CDNTemp");
                 break;
             case "com.tencent.mobileqq":
                 s.add("/data/data/com.tencent.mobileqq/databases");
-                s.add("/data/media/0/tencent/MobileQQ/diskcache");
-                s.add("/data/media/0/tencent/MobileQQ/shortvideo");
-                s = addUserDir(s,"/data/media/0/tecent/MobileQQ");
+                s.add("/data/data/com.tencent.mobileqq/shared_prefs");
+                s.add("/data/data/com.tencent.mobileqq/files/gm_history");
+                s.add("/data/data/com.tencent.mobileqq/files/ConfigStore2.dat");
+                //s.add("/data/data/com.tencent.mobileqq/files");
+                //s.add("/data/media/0/tencent/MobileQQ/diskcache");
+                //s.add("/data/media/0/tencent/MobileQQ/shortvideo");
+                //s.add("/data/media/0/tencent/MobileQQ/data");
+                //s = addUserDir(s,"/data/media/0/tecent/MobileQQ");
         }
         return s;
     }
