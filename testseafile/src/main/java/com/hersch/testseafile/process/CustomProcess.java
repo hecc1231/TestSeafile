@@ -1,4 +1,4 @@
-package com.hersch.testseafile;
+package com.hersch.testseafile.process;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.pm.PackageInfo;

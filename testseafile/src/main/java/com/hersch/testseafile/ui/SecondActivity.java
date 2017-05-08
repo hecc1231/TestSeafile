@@ -2,7 +2,12 @@ package com.hersch.testseafile.ui;
 
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -10,7 +15,6 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.view.KeyEvent;
 import android.view.View;
-import android.widget.Adapter;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -18,7 +22,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.hersch.testseafile.CustomProcess;
+import com.hersch.testseafile.process.CustomProcess;
 import com.hersch.testseafile.R;
 import com.hersch.testseafile.files.ConfigList;
 import com.hersch.testseafile.files.FileSM;
@@ -26,14 +30,13 @@ import com.hersch.testseafile.net.HttpRequest;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import com.hersch.testseafile.files.FileRooter;
-import com.hersch.testseafile.files.FileSnapshot;
+import com.hersch.testseafile.files.FileBackup;
 import com.hersch.testseafile.files.common;
 
 public class SecondActivity extends AppCompatActivity {
@@ -56,8 +59,12 @@ public class SecondActivity extends AppCompatActivity {
     public static String strRootId = MainActivity.strRootId;
     public static byte[] m_binArray = null;
     public static String strCurrentPath = "/data/data/com.hersch.testseafile";
-    Button btnSync;
-    Button btnSnapshot;
+    public int stateNum = 0;
+    static int testDirNum = 0;
+    static int testFileNum = 0;
+    Button btnRecovery;
+    Button btnBackup;
+    Button btnTest;
     TextView tvFileScanner;
     Context context;
     @Override
@@ -70,8 +77,8 @@ public class SecondActivity extends AppCompatActivity {
     void findView() {
         initSpinner();
         tvFileScanner = (TextView) findViewById(R.id.tvFileScanner);
-        btnSnapshot = (Button) findViewById(R.id.btnSnapshot);
-        btnSnapshot.setOnClickListener(new View.OnClickListener() {
+        btnBackup = (Button) findViewById(R.id.btnBackup);
+        btnBackup.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (processName == null) {
@@ -86,8 +93,8 @@ public class SecondActivity extends AppCompatActivity {
                 }
             }
         });
-        btnSync = (Button) findViewById(R.id.btnSync);
-        btnSync.setOnClickListener(new View.OnClickListener() {
+        btnRecovery = (Button) findViewById(R.id.btnRecovery);
+        btnRecovery.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (processName == null) {
@@ -97,12 +104,129 @@ public class SecondActivity extends AppCompatActivity {
                 Context context = getApplicationContext();
                 if (CustomProcess.isProcessRunning(context, processName) || CustomProcess.isServiceRunning(context, processName)) {
                     //当前微信正在运行
-                    createSyncDialg();//弹出确认框
+                    createRecoveryDialg();//弹出确认框
                 } else {
-                    syncToMsg();
+                    recoveryToApp();
                 }
             }
         });
+        btnTest = (Button)findViewById(R.id.btnTest);
+        btnTest.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        stateNum++;
+                        SharedPreferences sharedPreferences = getSharedPreferences("state" + stateNum, Context.MODE_PRIVATE);
+                        SharedPreferences.Editor editor = sharedPreferences.edit();
+                        editor.commit();
+                        List<String> preList = ConfigList.getInitDirList("local", "system");
+                        List<Integer> integers = FileRooter.chmodPreDirPath(preList);
+                        for (int i = 0; i < integers.size(); i++) {
+                            chmodFileList.add(preList.get(i));
+                            chmodIntList.add(integers.get(i));
+                        }
+                        List<String> backupList = ConfigList.getList("system");
+                        testFileNum = 0;
+                        for (String s : backupList) {
+                            traverseFile(s, stateNum);
+                        }
+                        FileRooter.rollBackChmodFiles(integers, chmodFileList);
+                        System.out.println("测试完成");
+                        System.out.println("Directorys: " + testDirNum);
+                        System.out.println("Files: " + testFileNum);
+                    }
+                }).start();
+            }
+        });
+    }
+    void traverseFile(String strFilePath,int stateNum){
+        //创建目录
+        List<String> listFile = new ArrayList<>();
+        List<String> listDir = new ArrayList<>();
+        File file = new File(strFilePath);
+        File[] files = file.listFiles();
+        for (int j = 0; j < files.length; j++) {
+            if (files[j].isDirectory()) {
+                if(strFilePath.equals("/data/data")){
+                    if(isSystemApp(files[j].getName())||files[j].getName().equals(processName)){
+                        listDir.add(files[j].getAbsolutePath());
+                    }
+                }
+                else {
+                    listDir.add(files[j].getAbsolutePath());
+                }
+            } else {
+                listFile.add(files[j].getAbsolutePath());
+            }
+        }
+        if (listDir.size() > 0) {
+            List<Integer> dirChmod = FileRooter.getAccessFromFiles(listDir);//获取当前目录下文件夹权限并将文件夹chmod为777
+            for(Integer integer:dirChmod){
+                SecondActivity.chmodIntList.add(integer);
+            }
+            for(String strDirPath:listDir){
+                SecondActivity.chmodFileList.add(strDirPath);
+            }
+            for (int j = 0; j < listDir.size(); j++) {
+                File cFile = new File(listDir.get(j));
+                if(cFile.canRead()) {
+                    if (listDir.get(j).length() > 0) {//文件夹不空才记录
+                        System.out.println(listDir.get(j));
+                        testDirNum++;
+                        traverseFile(listDir.get(j), stateNum);
+                    }
+                }
+            }
+        }
+        if (listFile.size() > 0) {
+            List<Integer> fileChmod = FileRooter.cmdChmod(listFile);
+            for(Integer integer:fileChmod){
+                SecondActivity.chmodIntList.add(integer);
+            }
+            for(String filePath:listFile){
+                SecondActivity.chmodFileList.add(filePath);
+            }
+            for (int j = 0; j < listFile.size(); j++) {
+                File cFile = new File(listFile.get(j));
+                if(cFile.canRead()) {
+                    testFileNum++;
+                    addSharedPrefs(listFile.get(j), stateNum);
+                    System.out.println(listFile.get(j));
+                }
+            }
+        }
+    }
+    boolean isSystemApp(String pkgName){
+        PackageManager packageManager = this.getPackageManager();
+        List<PackageInfo> packageInfoList = packageManager.getInstalledPackages(0);
+        for (int i = 0; i < packageInfoList.size(); i++) {
+            PackageInfo pak = (PackageInfo)packageInfoList.get(i);
+            //判断是否为系统预装的应用
+            if(pak.packageName.equals(pkgName)) {
+                if ((pak.applicationInfo.flags & pak.applicationInfo.FLAG_SYSTEM) <= 0) {
+                    return false;
+                } else {
+                    return true;//系统应用
+                }
+            }
+        }
+        return false;
+    }
+    void addSharedPrefs(String fileName,int stateNum){
+        SharedPreferences currentSharedPrefs = getSharedPreferences("state"+stateNum,Context.MODE_PRIVATE);
+        SharedPreferences.Editor currentEditor = currentSharedPrefs.edit();
+        SharedPreferences initSharedPrefs = getSharedPreferences("state0", Context.MODE_PRIVATE);
+        SharedPreferences.Editor initEditor = initSharedPrefs.edit();
+        String strExistMd5 = initSharedPrefs.getString(fileName,"null");
+        String strCurrentMd5 = common.getFileMD5(fileName);
+        if(strExistMd5.equals("null")||!strExistMd5.equals(strCurrentMd5)){
+            currentEditor.putString(fileName, strCurrentMd5);
+            initEditor.putString(fileName,strCurrentMd5);
+            initEditor.commit();
+            currentEditor.commit();
+        }
     }
     void initSpinner() {
         List<String>list = ConfigList.getAppList();
@@ -148,7 +272,7 @@ public class SecondActivity extends AppCompatActivity {
     /**
      * 弹出确认关闭应用的窗口
      */
-    void createSyncDialg() {
+    void createRecoveryDialg() {
         AlertDialog.Builder builder = new AlertDialog.Builder(SecondActivity.this);
         builder.setMessage("检测到应用正在运行,确认退出应用开始同步数据吗？");
         builder.setTitle("提示");
@@ -157,7 +281,7 @@ public class SecondActivity extends AppCompatActivity {
             public void onClick(DialogInterface dialog, int which) {
                 dialog.dismiss();
                 CustomProcess.kill(processName);
-                syncToMsg();
+                recoveryToApp();
             }
         });
         builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
@@ -171,7 +295,7 @@ public class SecondActivity extends AppCompatActivity {
     void initPreDirOnCloud(){
         List<String>list = ConfigList.getInitDirList("cloud",processName);
         for(String s:list){
-            FileSnapshot.createDirectory(s);
+            FileBackup.createDirectory(s);
         }
     }
     void initList(){
@@ -180,8 +304,8 @@ public class SecondActivity extends AppCompatActivity {
         deleteZipList.clear();
     }
     void backupToSeafile(){
-        btnSnapshot.setText("数据备份中.....");
-        btnSnapshot.setEnabled(false);
+        btnBackup.setText("数据备份中.....");
+        btnBackup.setEnabled(false);
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -196,7 +320,7 @@ public class SecondActivity extends AppCompatActivity {
                     chmodFileList.add(initDirList.get(i));
                 }
                 for (String s : listTraverseFile) {
-                    FileSnapshot.traverseFileCy(SecondActivity.this, s, myHandler);
+                    FileBackup.traverseFileCy(SecondActivity.this, s, myHandler);
                 }
                 System.out.println("----->还原文件权限中");
                 FileRooter.rollBackChmodFiles(chmodIntList, chmodFileList);
@@ -210,9 +334,9 @@ public class SecondActivity extends AppCompatActivity {
                 }
         }).start();
     }
-    void syncToMsg(){
-        btnSync.setText("同步数据中....");
-        btnSync.setEnabled(false);
+    void recoveryToApp(){
+        btnRecovery.setText("同步数据中....");
+        btnRecovery.setEnabled(false);
         final Context context = getApplicationContext();
         new Thread(new Runnable() {
             @Override
@@ -253,7 +377,7 @@ public class SecondActivity extends AppCompatActivity {
                         }
                         else {
                             List<String> splitList = FileSM.getSplitListFromCloud(strCloudPath);//列表存放在云端上的路径
-                            if (FileSM.isCompleteSplitNum(splitList)) {
+                            if (FileSM.isCompleteSplitNum(splitList)) {//判断分割后的文件是否完整
                                 for (int i = 0; i < splitList.size(); i++) {
                                     String splitZipName = splitList.get(i);
                                     downloadFile(strCurrentPath + splitZipName, strCloudPath);
@@ -471,13 +595,13 @@ public class SecondActivity extends AppCompatActivity {
             super.handleMessage(msg);
             switch (msg.what){
                 case MSG_COMPLETE_BACKUP:
-                    btnSnapshot.setEnabled(true);
-                    btnSnapshot.setText("备份");
+                    btnBackup.setEnabled(true);
+                    btnBackup.setText("备份");
                     Toast.makeText(SecondActivity.this,"数据成功备份到云端",Toast.LENGTH_SHORT).show();
                     break;
                 case MSG_COMPLETE_SYNC:
-                    btnSync.setEnabled(true);
-                    btnSync.setText("同步");
+                    btnRecovery.setEnabled(true);
+                    btnRecovery.setText("同步");
                     Toast.makeText(SecondActivity.this,"应用数据同步完成",Toast.LENGTH_SHORT).show();
                     break;
                 case MSG_BACKUP_FILE_INFO:
@@ -485,8 +609,8 @@ public class SecondActivity extends AppCompatActivity {
                     break;
                 case MSG_NOT_SYNC:
                     Toast.makeText(SecondActivity.this,"云端不存在备份文件,请先备份",Toast.LENGTH_SHORT).show();
-                    btnSync.setEnabled(true);
-                    btnSync.setText("同步");
+                    btnRecovery.setEnabled(true);
+                    btnRecovery.setText("同步");
                     break;
             }
         }

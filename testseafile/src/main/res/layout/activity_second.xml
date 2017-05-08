@@ -38,12 +38,17 @@
         <Button
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/btnSnapshot"
+            android:id="@+id/btnBackup"
             android:text="备份数据"/>
         <Button
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/btnSync"
+            android:id="@+id/btnRecovery"
             android:text="同步数据"/>
+        <Button
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/btnTest"
+            android:text="测试"/>
     </LinearLayout>
 </LinearLayout>

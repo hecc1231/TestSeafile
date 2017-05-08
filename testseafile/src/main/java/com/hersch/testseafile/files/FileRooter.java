@@ -6,6 +6,8 @@ import android.util.Log;
 
 import com.hersch.testseafile.ui.SecondActivity;
 
+import org.apache.commons.lang.StringEscapeUtils;
+
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
@@ -23,7 +25,6 @@ import java.util.Map;
 public class FileRooter {
     static Process process = null;
     static DataOutputStream dataOutputStream = null;
-    static BufferedReader bufferedReader = null;
     public static void requestRoot(){
         initProcess();
         try{
@@ -50,11 +51,12 @@ public class FileRooter {
                 process = Runtime.getRuntime().exec("su");
                 dataOutputStream = new DataOutputStream(process.getOutputStream());
                 for(String strFilePath:fileList) {
+                    strFilePath = escapeString(strFilePath);
                     dataOutputStream.writeBytes("rm " + strFilePath + "\n");
                 }
                 dataOutputStream.writeBytes("exit\n");
                 dataOutputStream.flush();
-                process.waitFor();
+                //process.waitFor();
             } catch (Exception e) {
             } finally {
                 try {
@@ -67,6 +69,39 @@ public class FileRooter {
                 }
             }
     }
+    public static List<Integer> cmdChmod(List<String>files){
+        List<Integer>integers = new ArrayList<>();
+        initProcess();
+        try {
+            process = Runtime.getRuntime().exec("su");
+            dataOutputStream = new DataOutputStream(process.getOutputStream());
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            for(String strFilePath:files) {
+                strFilePath = escapeString(strFilePath);
+                System.out.println("转义字符"+strFilePath);
+                dataOutputStream.writeBytes("ls -l -d " + strFilePath + "\n");
+                String str = bufferedReader.readLine();
+                int chmodValue = sumChmodAccess(str);
+                integers.add(chmodValue);//记录文件权限位
+                System.out.println("权限字符:" + str + " " + strFilePath + "权限为" + chmodValue);
+                dataOutputStream.writeBytes("chmod 777 " + strFilePath + "\n");
+            }
+            dataOutputStream.writeBytes("exit\n");
+            dataOutputStream.flush();
+            //process.waitFor();
+        } catch (Exception e){
+        }finally {
+            try {
+                if(dataOutputStream!=null){
+                    dataOutputStream.close();
+                }
+                process.destroy();
+            }catch (IOException e){
+                System.out.println("文件压缩失败");
+            }
+        }
+        return integers;
+    }
     public static List<Integer> cmdZipsAndChmod(List<String>files){
         List<Integer>integers = new ArrayList<>();
         initProcess();
@@ -75,6 +110,7 @@ public class FileRooter {
             dataOutputStream = new DataOutputStream(process.getOutputStream());
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             for(String strFilePath:files) {
+                strFilePath = escapeString(strFilePath);
                 dataOutputStream.writeBytes("gzip -c " + strFilePath + ">" + strFilePath
                         + ".gz" + "\n");//保证先压缩到当前app文件夹下记得创建父级目录
                 dataOutputStream.writeBytes("ls -l -d " + strFilePath + "\n");
@@ -87,7 +123,7 @@ public class FileRooter {
             }
             dataOutputStream.writeBytes("exit\n");
             dataOutputStream.flush();
-            process.waitFor();
+            //process.waitFor();
         } catch (Exception e){
         }finally {
             try {
@@ -115,6 +151,7 @@ public class FileRooter {
             dataOutputStream = new DataOutputStream(process.getOutputStream());
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             for(String strFilePath:files) {
+                strFilePath = escapeString(strFilePath);
                 dataOutputStream.writeBytes("ls -l -d " + strFilePath + "\n");
                 String str = bufferedReader.readLine();
                 int chmodValue = sumChmodAccess(str);
@@ -124,7 +161,7 @@ public class FileRooter {
             }
             dataOutputStream.writeBytes("exit\n");
             dataOutputStream.flush();
-            process.waitFor();
+            //process.waitFor();
         } catch (Exception e){
         }finally {
             try {
@@ -144,12 +181,14 @@ public class FileRooter {
             process = Runtime.getRuntime().exec("su");
             dataOutputStream = new DataOutputStream(process.getOutputStream());
             for(int i=0;i<integers.size();i++){
-                dataOutputStream.writeBytes("chmod "+integers.get(i)+" "+fileList.get(i)+"\n");
-                System.out.println(fileList.get(i)+"还原权限: "+integers.get(i));
+                String strFilePath = fileList.get(i);
+                strFilePath = escapeString(strFilePath);
+                dataOutputStream.writeBytes("chmod "+integers.get(i)+" "+strFilePath+"\n");
+                System.out.println(strFilePath+"还原权限: "+integers.get(i));
             }
             dataOutputStream.writeBytes("exit\n");
             dataOutputStream.flush();
-            process.waitFor();
+            //process.waitFor();
         } catch (Exception e){
         }finally {
             try {
@@ -167,13 +206,13 @@ public class FileRooter {
         try {
             process = Runtime.getRuntime().exec("su");
             dataOutputStream = new DataOutputStream(process.getOutputStream());
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             for (String strFilePath : dirList) {
+                strFilePath = escapeString(strFilePath);
                 dataOutputStream.writeBytes("mkdir " + strFilePath + "\n");
             }
             dataOutputStream.writeBytes("exit\n");
             dataOutputStream.flush();
-            process.waitFor();
+            //process.waitFor();
         } catch (Exception e) {
         } finally {
             try {
@@ -193,13 +232,15 @@ public class FileRooter {
             dataOutputStream = new DataOutputStream(process.getOutputStream());
             for(int i=0;i<srcFileList.size();i++) {
                 String srcFilePath = srcFileList.get(i);
+                srcFilePath = escapeString(srcFilePath);
                 String desFilePath = desFileList.get(i);
+                desFilePath = escapeString(desFilePath);//将转义字符转义
                 dataOutputStream.writeBytes("gzip -c -d " + srcFilePath+ ">" + desFilePath + "\n");
                 System.out.println(srcFilePath + "---- unzip to ----" + desFilePath);
             }
             dataOutputStream.writeBytes("exit\n");
             dataOutputStream.flush();
-            process.waitFor();
+            //process.waitFor();
         } catch (Exception e){
         }finally {
             try {
@@ -240,16 +281,18 @@ public class FileRooter {
             dataOutputStream = new DataOutputStream(process.getOutputStream());
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             for(int i=0;i<files.size();i++) {
-                dataOutputStream.writeBytes("ls -l -d " + files.get(i) + "\n");
+                String strFilePath = files.get(i);
+                strFilePath = escapeString(strFilePath);
+                dataOutputStream.writeBytes("ls -l -d " + strFilePath + "\n");
                 String str = bufferedReader.readLine();
                 int accessNum = sumChmodAccess(str);
                 integers.add(accessNum);
                 System.out.println(files.get(i)+"权限:"+accessNum);
-                dataOutputStream.writeBytes("chmod 777 "+files.get(i)+"\n");
+                dataOutputStream.writeBytes("chmod 777 "+strFilePath+"\n");
             }
             dataOutputStream.writeBytes("exit\n");
             dataOutputStream.flush();
-            process.waitFor();
+            //process.waitFor();
         } catch (Exception e){
         }finally {
             try {
@@ -263,5 +306,10 @@ public class FileRooter {
             }
         }
         return integers;
+    }
+    static String escapeString(String s){
+        s = s.replaceAll("\\ ", "\\\\\\ ");//前一个参数为正则表达式格式"\\ "表示空格
+        s = s.replaceAll("\\$", "\\\\\\$");//正则表达式表示\$是\\\$再字符转义三个斜杠
+        return s;
     }
 }
