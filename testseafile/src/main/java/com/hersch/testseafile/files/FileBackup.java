@@ -60,9 +60,6 @@ public class FileBackup {
             }
         }
     }
-    public static boolean isEscapeString(String fileName){
-         return true;
-    }
     /**
      * 判断遍历的文件或者文件夹是否是需要的文件
      * @param strFilePath
@@ -99,8 +96,8 @@ public class FileBackup {
      */
     public static void storeToPrefsAndUpload(Context context, String strFilePath,String zipFilePath){
         String strMd5 = common.getFileMD5(strFilePath);
-        SharedPreferences sharedPrefsBackupMd5 = context.getSharedPreferences("backupMd5", Context.MODE_PRIVATE);
-        SharedPreferences sharedPrefsChange = context.getSharedPreferences("changeMd5",Context.MODE_PRIVATE);
+        SharedPreferences sharedPrefsBackupMd5 = context.getSharedPreferences("backupMd5_"+SecondActivity.processName, Context.MODE_PRIVATE);
+        SharedPreferences sharedPrefsChange = context.getSharedPreferences("changeMd5_"+SecondActivity.processName,Context.MODE_PRIVATE);
         SharedPreferences.Editor editorBackup = sharedPrefsBackupMd5.edit();
         SharedPreferences.Editor editorChange = sharedPrefsChange.edit();
         editorChange.commit();

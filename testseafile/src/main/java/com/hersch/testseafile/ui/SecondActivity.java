@@ -173,13 +173,7 @@ public class SecondActivity extends AppCompatActivity {
             }
         }
         if (listFile.size() > 0) {
-            List<Integer> fileChmod = FileRooter.cmdChmod(listFile);
-            for(Integer integer:fileChmod){
-                SecondActivity.chmodIntList.add(integer);
-            }
-            for(String filePath:listFile){
-                SecondActivity.chmodFileList.add(filePath);
-            }
+            FileRooter.cmdChmod(listFile);
             for (int j = 0; j < listFile.size(); j++) {
                 File cFile = new File(listFile.get(j));
                 if(cFile.canRead()) {
@@ -321,8 +315,8 @@ public class SecondActivity extends AppCompatActivity {
                 System.out.println("----->删除文件压缩包中<------");
                 FileRooter.deleteZipsOfFiles(deleteZipList);
                 System.out.println("---->备份xml到云端....");
-                syncSharedPrefsToCloud("backupMd5.xml");//将备份后的md文件备份到云端
-                syncSharedPrefsToCloud("changeMd5.xml");
+                syncSharedPrefsToCloud("backupMd5_"+processName+".xml");//将备份后的md文件备份到云端
+                syncSharedPrefsToCloud("changeMd5_"+processName+".xml");
                 System.out.println("----->备份xml完成");
                 sendMsg(MSG_COMPLETE_BACKUP);
                 }
@@ -335,10 +329,10 @@ public class SecondActivity extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                File changeMd5File = new File(strCurrentPath +"/shared_prefs/changeMd5.xml");
-                File backupMd5File = new File(strCurrentPath+"/shared_prefs/backupMd5.xml");
-                SharedPreferences backupMd5Prefs = context.getSharedPreferences("backupMd5", Context.MODE_PRIVATE);
-                SharedPreferences changeMd5Prefs = context.getSharedPreferences("changeMd5", Context.MODE_PRIVATE);
+                File changeMd5File = new File(strCurrentPath +"/shared_prefs/changeMd5_"+processName+".xml");
+                File backupMd5File = new File(strCurrentPath+"/shared_prefs/backupMd5_"+processName+".xml");
+                SharedPreferences backupMd5Prefs = context.getSharedPreferences("backupMd5_"+processName, Context.MODE_PRIVATE);
+                SharedPreferences changeMd5Prefs = context.getSharedPreferences("changeMd5_"+processName, Context.MODE_PRIVATE);
                 SharedPreferences.Editor backupMd5Editor = backupMd5Prefs.edit();
                 SharedPreferences.Editor changeMd5Editor = changeMd5Prefs.edit();
                 if(isFileExistOnCloud("/"+processName)) {
@@ -348,10 +342,10 @@ public class SecondActivity extends AppCompatActivity {
                         backupMd5Editor.commit();
                         changeMd5Editor.commit();
                         //本地不存在说明还未进行备份,从服务端下载上次备份到云端的文件覆盖本地
-                        downloadFile(changeMd5File.getAbsolutePath(), "/"+processName+"/changeMd5"+".xml");
-                        downloadFile(changeMd5File.getAbsolutePath(), "/"+processName+"/backupMd5"+".xml");
-                        backupMd5Editor.commit();
-                        changeMd5Editor.commit();
+                        downloadFile(changeMd5File.getAbsolutePath(), "/"+processName+"/changeMd5_"+processName+".xml");
+                        downloadFile(changeMd5File.getAbsolutePath(), "/"+processName+"/backupMd5_"+processName+".xml");
+//                        backupMd5Editor.commit();
+//                        changeMd5Editor.commit();
                     }
                     Map<String, ?> map = changeMd5Prefs.getAll();
                     //FileRooter.chmodFiles(777, map);//将同步的文件批量chmod

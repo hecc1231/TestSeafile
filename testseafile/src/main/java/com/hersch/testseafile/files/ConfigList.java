@@ -46,10 +46,15 @@ public class ConfigList {
             case "com.tencent.mm":
                 s.add("/data");
                 s.add("/data/data");
+                s.add("/data/system");
+                s.add("/data/system/packages.xml");
+                s.add("/data/system/packages.list");
+                s.add("/data/system/packages-more-backup.xml");
                 s.add("/data/data/com.tencent.mm");
                 s.add("/data/data/com.tencent.mm/MicroMsg");
                 s.add("/data/data/com.tencent.mm/shared_prefs");
                 s.add("/data/data/com.tencent.mm/files");
+                s.add("/data/data/com.tencent.mm/databases");
                 s.add("/data/data/com.tencent.mm/tinker");
                 s.add("/data/data/com.tencent.mm/app_tbs");
                 s.add("/data/media");
@@ -93,20 +98,24 @@ public class ConfigList {
             case "com.tencent.mm":
                 s.add("/data/data/com.tencent.mm/MicroMsg");
                 s.add("/data/data/com.tencent.mm/shared_prefs");
-                s.add("/data/data/com.tencent.mm/tinker");
-                s.add("/data/data/com.tencent.mm/app_tbs");
-                //s.add("/data/data/com.tencent.mm/files");
+                //s.add("/data/data/com.tencent.mm/tinker");
+                //s.add("/data/data/com.tencent.mm/app_tbs");
+                s.add("/data/data/com.tencent.mm/databases");
+                s.add("/data/data/com.tencent.mm/files");
+                s.add("/data/system/packages.xml");
+                s.add("/data/system/packages.list");
+                s.add("data/system/packages-more-backup.xml");
                 //s.add("/data/media/0/tencent/MicroMsg");
-                s.add("/data/media/0/tencent/vusericon");
-                s.add("/data/media/0/tencent/CDNTemp");
+                //s.add("/data/media/0/tencent/vusericon");
+                //s.add("/data/media/0/tencent/CDNTemp");
                 break;
             case "com.tencent.mobileqq":
                 s.add("/data/data/com.tencent.mobileqq/databases");
                 s.add("/data/data/com.tencent.mobileqq/shared_prefs");
                 s.add("/data/data/com.tencent.mobileqq/files/gm_history");
                 s.add("/data/data/com.tencent.mobileqq/files/ConfigStore2.dat");
-                //s.add("/data/media/0/tencent/MobileQQ/diskcache");
-                //s.add("/data/media/0/tencent/MobileQQ/shortvideo");
+                s.add("/data/media/0/tencent/MobileQQ/diskcache");
+                s.add("/data/media/0/tencent/MobileQQ/shortvideo");
                 //s.add("/data/media/0/tencent/MobileQQ/data");
                 //s = addUserDir(s,"/data/media/0/tecent/MobileQQ");
                 break;

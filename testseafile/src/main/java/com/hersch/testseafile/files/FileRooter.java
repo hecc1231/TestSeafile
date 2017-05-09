@@ -12,12 +12,14 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.prefs.PreferenceChangeEvent;
 
 import javax.crypto.SealedObject;
 
@@ -26,15 +28,19 @@ import javax.crypto.SealedObject;
  */
 public class FileRooter {
     static Process process = null;
+    //static ProcessBuilder processBuilder = null;
     static DataOutputStream dataOutputStream = null;
     public static void requestRoot(){
         initProcess();
-        try{
-            process = Runtime.getRuntime().exec("su");
-            process.destroy();
-        }catch (Exception e){
-            e.printStackTrace();
-        }
+//        try{
+//            //ProcessBuilder processBuilder = new ProcessBuilder("su");
+//            //Process process = processBuilder.start();
+//            process = Runtime.getRuntime().exec("su");
+////            process.destroy();
+//            process.destroy();
+//        }catch (Exception e){
+//            e.printStackTrace();
+//        }
     }
     /**
      * 初始化进程
@@ -46,11 +52,16 @@ public class FileRooter {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+//        if(processBuilder==null){
+//            processBuilder = new ProcessBuilder("su");
+//        }
     }
     public static void deleteZipsOfFiles(List<String> fileList){
-            initProcess();
+            //initProcess();
             try {
-                process = Runtime.getRuntime().exec("su");
+                ProcessBuilder processBuilder = new ProcessBuilder("su");
+                process = processBuilder.start();
+                //Process process = Runtime.getRuntime().exec("su");
                 dataOutputStream = new DataOutputStream(process.getOutputStream());
                 for(String strFilePath:fileList) {
                     strFilePath = escapeString(strFilePath);
@@ -58,7 +69,7 @@ public class FileRooter {
                 }
                 dataOutputStream.writeBytes("exit\n");
                 dataOutputStream.flush();
-                //process.waitFor();
+                process.waitFor();
             } catch (Exception e) {
             } finally {
                 try {
@@ -71,11 +82,12 @@ public class FileRooter {
                 }
             }
     }
-    public static List<Integer> cmdChmod(List<String>files){
-        List<Integer>integers = new ArrayList<>();
-        initProcess();
+    public static void cmdChmod(List<String>files){
+        //initProcess();
         try {
-            process = Runtime.getRuntime().exec("su");
+//            Process process = Runtime.getRuntime().exec("su");
+            ProcessBuilder processBuilder = new ProcessBuilder("su");
+            process = processBuilder.start();
             dataOutputStream = new DataOutputStream(process.getOutputStream());
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             for(String strFilePath:files) {
@@ -84,13 +96,14 @@ public class FileRooter {
                 dataOutputStream.writeBytes("ls -l -d " + strFilePath + "\n");
                 String str = bufferedReader.readLine();
                 int chmodValue = sumChmodAccess(str);
-                integers.add(chmodValue);//记录文件权限位
+                SecondActivity.chmodIntList.add(chmodValue);
+                SecondActivity.chmodFileList.add(strFilePath);
                 System.out.println("权限字符:" + str + " " + strFilePath + "权限为" + chmodValue);
                 dataOutputStream.writeBytes("chmod 777 " + strFilePath + "\n");
             }
             dataOutputStream.writeBytes("exit\n");
             dataOutputStream.flush();
-            //process.waitFor();
+            process.waitFor();
         } catch (Exception e){
         }finally {
             try {
@@ -102,18 +115,18 @@ public class FileRooter {
                 System.out.println("文件压缩失败");
             }
         }
-        return integers;
     }
     public static void cmdZipsAndChmod(List<String>files){
-        List<Integer>integers = new ArrayList<>();
-        initProcess();
+        //initProcess();
         try {
-            process = Runtime.getRuntime().exec("su");
+            //Process process = Runtime.getRuntime().exec("su");
+            ProcessBuilder processBuilder = new ProcessBuilder("su");
+            process = processBuilder.start();
             dataOutputStream = new DataOutputStream(process.getOutputStream());
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             for(String strFilePath:files) {
                 strFilePath = escapeString(strFilePath);
-                if(!isFileExist(strFilePath)){
+                if(!isFileExist(process,dataOutputStream,strFilePath)){
                     continue;
                 }
                 dataOutputStream.writeBytes("gzip -c " + strFilePath + ">" + strFilePath
@@ -130,7 +143,7 @@ public class FileRooter {
             }
             dataOutputStream.writeBytes("exit\n");
             dataOutputStream.flush();
-            //process.waitFor();
+            process.waitFor();
         } catch (Exception e){
         }finally {
             try {
@@ -150,15 +163,16 @@ public class FileRooter {
      * @return
      */
     public static void chmodPreDirPath(List<String>files){
-        List<Integer>integers = new ArrayList<>();
-        initProcess();
+        //initProcess();
         try {
-            process = Runtime.getRuntime().exec("su");
+            //Process process = Runtime.getRuntime().exec("su");
+            ProcessBuilder processBuilder = new ProcessBuilder("su");
+            process = processBuilder.start();
             dataOutputStream = new DataOutputStream(process.getOutputStream());
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             for(String strFilePath:files) {
                 strFilePath = escapeString(strFilePath);
-                if(!isFileExist(strFilePath)){
+                if(!isFileExist(process,dataOutputStream,strFilePath)){
                     continue;
                 }
                 dataOutputStream.writeBytes("ls -l -d " + strFilePath + "\n");
@@ -171,7 +185,7 @@ public class FileRooter {
             }
             dataOutputStream.writeBytes("exit\n");
             dataOutputStream.flush();
-            //process.waitFor();
+            process.waitFor();
         } catch (Exception e){
         }finally {
             try {
@@ -185,9 +199,11 @@ public class FileRooter {
         }
     }
     public static void rollBackChmodFiles(List<Integer>integers,List<String>fileList){
-        initProcess();
+        //initProcess();
         try {
-            process = Runtime.getRuntime().exec("su");
+            //Process process = Runtime.getRuntime().exec("su");
+            ProcessBuilder processBuilder = new ProcessBuilder("su");
+            process = processBuilder.start();
             dataOutputStream = new DataOutputStream(process.getOutputStream());
             for(int i=0;i<integers.size();i++){
                 String strFilePath = fileList.get(i);
@@ -197,7 +213,7 @@ public class FileRooter {
             }
             dataOutputStream.writeBytes("exit\n");
             dataOutputStream.flush();
-            //process.waitFor();
+            process.waitFor();
         } catch (Exception e){
         }finally {
             try {
@@ -211,9 +227,11 @@ public class FileRooter {
         }
     }
     public static void createDir(List<String>dirList) {
-        initProcess();
+        //initProcess();
         try {
-            process = Runtime.getRuntime().exec("su");
+            //Process process = Runtime.getRuntime().exec("su");
+            ProcessBuilder processBuilder = new ProcessBuilder("su");
+            process = processBuilder.start();
             dataOutputStream = new DataOutputStream(process.getOutputStream());
             for (String strFilePath : dirList) {
                 strFilePath = escapeString(strFilePath);
@@ -221,7 +239,7 @@ public class FileRooter {
             }
             dataOutputStream.writeBytes("exit\n");
             dataOutputStream.flush();
-            //process.waitFor();
+            process.waitFor();
         } catch (Exception e) {
         } finally {
             try {
@@ -234,22 +252,41 @@ public class FileRooter {
             }
         }
     }
-    public static void cmdUnzips(List<String>srcFileList,List<String>desFileList){
-        initProcess();
+    static boolean isFileExist(Process process,DataOutputStream dataOutputStream,String strFilePath){
         try {
-            process = Runtime.getRuntime().exec("su");
+            dataOutputStream.writeBytes("ls -l -d "+strFilePath+"\n");
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String str = bufferedReader.readLine();
+            if(str.contains("No such file")){
+                return false;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return true;
+        }
+        return true;
+    }
+    public static void cmdUnzips(List<String>srcFileList,List<String>desFileList){
+        //initProcess();
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder("su");
+            processBuilder.redirectErrorStream(true);
+            process = processBuilder.start();
+            //process = Runtime.getRuntime().exec("su");
             dataOutputStream = new DataOutputStream(process.getOutputStream());
             for(int i=0;i<srcFileList.size();i++) {
                 String srcFilePath = srcFileList.get(i);
                 srcFilePath = escapeString(srcFilePath);
                 String desFilePath = desFileList.get(i);
                 desFilePath = escapeString(desFilePath);//将转义字符转义
-                dataOutputStream.writeBytes("gzip -c -d " + srcFilePath+ ">" + desFilePath + "\n");
-                System.out.println(srcFilePath + "---- unzip to ----" + desFilePath);
+                if(isFileExist(process,dataOutputStream,desFilePath)) {//存在的文件才进行覆盖
+                    dataOutputStream.writeBytes("gzip -c -d " + srcFilePath + ">" + desFilePath + "\n");
+                    System.out.println(srcFilePath + "---- unzip to ----" + desFilePath);
+                }
             }
             dataOutputStream.writeBytes("exit\n");
             dataOutputStream.flush();
-            //process.waitFor();
+            process.waitFor();
         } catch (Exception e){
         }finally {
             try {
@@ -262,6 +299,9 @@ public class FileRooter {
                 System.out.println("文件解压失败");
             }
         }
+    }
+    static void read(InputStream inputStream){
+
     }
     private static int sumChmodAccess(String s){
         String s1 = s.substring(1,4);
@@ -283,19 +323,22 @@ public class FileRooter {
         return sum;
     }
     public static void getAccessFromFiles(List<String>files){
-        initProcess();
+        //initProcess();
         try {
-            process = Runtime.getRuntime().exec("su");
+            //process = Runtime.getRuntime().exec("su");
+            ProcessBuilder processBuilder = new ProcessBuilder("su");
+            process = processBuilder.start();
+            processBuilder.redirectErrorStream(true);
             dataOutputStream = new DataOutputStream(process.getOutputStream());
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             for(int i=0;i<files.size();i++) {
                 String strFilePath = files.get(i);
                 strFilePath = escapeString(strFilePath);
-                if(!isFileExist(strFilePath)){
-                    continue;
-                }
                 dataOutputStream.writeBytes("ls -l -d " + strFilePath + "\n");
                 String str = bufferedReader.readLine();
+                if(str.contains("No such file")){
+                    continue;
+                }
                 int accessNum = sumChmodAccess(str);
                 SecondActivity.chmodIntList.add(accessNum);
                 SecondActivity.chmodFileList.add(strFilePath);
@@ -304,7 +347,7 @@ public class FileRooter {
             }
             dataOutputStream.writeBytes("exit\n");
             dataOutputStream.flush();
-            //process.waitFor();
+            process.waitFor();
         } catch (Exception e){
         }finally {
             try {
@@ -322,9 +365,5 @@ public class FileRooter {
         s = s.replaceAll("\\ ", "\\\\\\ ");//前一个参数为正则表达式格式"\\ "表示空格
         s = s.replaceAll("\\$", "\\\\\\$");//正则表达式表示\$是\\\$再字符转义三个斜杠
         return s;
-    }
-    static boolean isFileExist(String strFilePath){
-        File currentFile = new File(strFilePath);
-        return currentFile.exists();
     }
 }
