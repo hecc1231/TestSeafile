@@ -160,13 +160,7 @@ public class SecondActivity extends AppCompatActivity {
             }
         }
         if (listDir.size() > 0) {
-            List<Integer> dirChmod = FileRooter.getAccessFromFiles(listDir);//获取当前目录下文件夹权限并将文件夹chmod为777
-            for(Integer integer:dirChmod){
-                SecondActivity.chmodIntList.add(integer);
-            }
-            for(String strDirPath:listDir){
-                SecondActivity.chmodFileList.add(strDirPath);
-            }
+            FileRooter.getAccessFromFiles(listDir);//获取当前目录下文件夹权限并将文件夹chmod为777
             for (int j = 0; j < listDir.size(); j++) {
                 File cFile = new File(listDir.get(j));
                 if(cFile.canRead()) {

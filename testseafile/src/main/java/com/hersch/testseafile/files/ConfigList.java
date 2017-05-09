@@ -119,10 +119,6 @@ public class ConfigList {
                 //s.add("/data/data/com.android.settings/app_webview");
                 //s.add("/data/data/com.tencent.mobileqq/files/nearby_gray_tips_configs");
                 //s.add("/data/media/"+SecondActivity.processName);
-                //s.add("/data/system");
-                //s.add("/data/app");
-                //s.add("/data/dalvik-cache");
-                //s.add("/data/backup");
                 break;
         }
         return s;

@@ -20,6 +20,9 @@ public class FileBackup {
         List<String> listDir = new ArrayList<>();
         List<String> requestList = ConfigList.getList(SecondActivity.processName);
         File file = new File(strFilePath);
+        if(!file.exists()){
+            return;
+        }
         if(file.isDirectory()) {
             File[] files = file.listFiles();
             for (int j = 0; j < files.length; j++) {
@@ -40,13 +43,7 @@ public class FileBackup {
             }
         }
         if (listDir.size() > 0) {
-            List<Integer> dirChmod = FileRooter.getAccessFromFiles(listDir);//获取当前目录下文件夹权限并将文件夹chmod为777
-            for(Integer integer:dirChmod){
-                SecondActivity.chmodIntList.add(integer);
-            }
-            for(String strDirPath:listDir){
-                SecondActivity.chmodFileList.add(strDirPath);
-            }
+            FileRooter.getAccessFromFiles(listDir);//获取当前目录下文件夹权限并将文件夹chmod为777
             for (int j = 0; j < listDir.size(); j++) {
                 if(listDir.get(j).length()>0) {//文件夹不空才记录
                     System.out.println(listDir.get(j));

@@ -80,7 +80,7 @@ public class FileRooter {
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             for(String strFilePath:files) {
                 strFilePath = escapeString(strFilePath);
-                System.out.println("转义字符"+strFilePath);
+                System.out.println("转义字符" + strFilePath);
                 dataOutputStream.writeBytes("ls -l -d " + strFilePath + "\n");
                 String str = bufferedReader.readLine();
                 int chmodValue = sumChmodAccess(str);
@@ -282,8 +282,7 @@ public class FileRooter {
         }
         return sum;
     }
-    public static List<Integer> getAccessFromFiles(List<String>files){
-        List<Integer>integers = new ArrayList<>();
+    public static void getAccessFromFiles(List<String>files){
         initProcess();
         try {
             process = Runtime.getRuntime().exec("su");
@@ -292,10 +291,14 @@ public class FileRooter {
             for(int i=0;i<files.size();i++) {
                 String strFilePath = files.get(i);
                 strFilePath = escapeString(strFilePath);
+                if(!isFileExist(strFilePath)){
+                    continue;
+                }
                 dataOutputStream.writeBytes("ls -l -d " + strFilePath + "\n");
                 String str = bufferedReader.readLine();
                 int accessNum = sumChmodAccess(str);
-                integers.add(accessNum);
+                SecondActivity.chmodIntList.add(accessNum);
+                SecondActivity.chmodFileList.add(strFilePath);
                 System.out.println(files.get(i)+"权限:"+accessNum);
                 dataOutputStream.writeBytes("chmod 777 "+strFilePath+"\n");
             }
@@ -314,7 +317,6 @@ public class FileRooter {
                 System.out.println("获取权限失败");
             }
         }
-        return integers;
     }
     static String escapeString(String s){
         s = s.replaceAll("\\ ", "\\\\\\ ");//前一个参数为正则表达式格式"\\ "表示空格
