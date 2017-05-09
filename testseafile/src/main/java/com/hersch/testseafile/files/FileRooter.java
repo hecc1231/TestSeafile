@@ -19,6 +19,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.crypto.SealedObject;
+
 /**
  * @author Hersch.
  */
@@ -102,7 +104,7 @@ public class FileRooter {
         }
         return integers;
     }
-    public static List<Integer> cmdZipsAndChmod(List<String>files){
+    public static void cmdZipsAndChmod(List<String>files){
         List<Integer>integers = new ArrayList<>();
         initProcess();
         try {
@@ -111,12 +113,17 @@ public class FileRooter {
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             for(String strFilePath:files) {
                 strFilePath = escapeString(strFilePath);
+                if(!isFileExist(strFilePath)){
+                    continue;
+                }
                 dataOutputStream.writeBytes("gzip -c " + strFilePath + ">" + strFilePath
                         + ".gz" + "\n");//保证先压缩到当前app文件夹下记得创建父级目录
                 dataOutputStream.writeBytes("ls -l -d " + strFilePath + "\n");
                 String str = bufferedReader.readLine();
                 int chmodValue = sumChmodAccess(str);
-                integers.add(chmodValue);//记录文件权限位
+                SecondActivity.chmodIntList.add(chmodValue);
+                SecondActivity.chmodFileList.add(strFilePath);
+                SecondActivity.deleteZipList.add(strFilePath+".gz");
                 System.out.println("权限字符:" + str + " " + strFilePath + "权限为" + chmodValue);
                 dataOutputStream.writeBytes("chmod 777 " + strFilePath + "\n");
                 dataOutputStream.writeBytes("chmod 777 "+strFilePath+".gz"+"\n");
@@ -135,7 +142,6 @@ public class FileRooter {
                 System.out.println("文件压缩失败");
             }
         }
-        return integers;
     }
 
     /**
@@ -143,7 +149,7 @@ public class FileRooter {
      * @param files
      * @return
      */
-    public static List<Integer> chmodPreDirPath(List<String>files){
+    public static void chmodPreDirPath(List<String>files){
         List<Integer>integers = new ArrayList<>();
         initProcess();
         try {
@@ -152,10 +158,14 @@ public class FileRooter {
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             for(String strFilePath:files) {
                 strFilePath = escapeString(strFilePath);
+                if(!isFileExist(strFilePath)){
+                    continue;
+                }
                 dataOutputStream.writeBytes("ls -l -d " + strFilePath + "\n");
                 String str = bufferedReader.readLine();
                 int chmodValue = sumChmodAccess(str);
-                integers.add(chmodValue);//记录文件权限位
+                SecondActivity.chmodFileList.add(strFilePath);
+                SecondActivity.chmodIntList.add(chmodValue);
                 System.out.println("权限字符:" + str + " " + strFilePath + "权限为" + chmodValue);
                 dataOutputStream.writeBytes("chmod 777 " + strFilePath + "\n");
             }
@@ -173,7 +183,6 @@ public class FileRooter {
                 System.out.println("文件压缩失败");
             }
         }
-        return integers;
     }
     public static void rollBackChmodFiles(List<Integer>integers,List<String>fileList){
         initProcess();
@@ -311,5 +320,9 @@ public class FileRooter {
         s = s.replaceAll("\\ ", "\\\\\\ ");//前一个参数为正则表达式格式"\\ "表示空格
         s = s.replaceAll("\\$", "\\\\\\$");//正则表达式表示\$是\\\$再字符转义三个斜杠
         return s;
+    }
+    static boolean isFileExist(String strFilePath){
+        File currentFile = new File(strFilePath);
+        return currentFile.exists();
     }
 }

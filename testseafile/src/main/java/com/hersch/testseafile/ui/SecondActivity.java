@@ -118,21 +118,19 @@ public class SecondActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         stateNum++;
+                        chmodFileList.clear();
+                        chmodIntList.clear();
                         SharedPreferences sharedPreferences = getSharedPreferences("state" + stateNum, Context.MODE_PRIVATE);
                         SharedPreferences.Editor editor = sharedPreferences.edit();
                         editor.commit();
                         List<String> preList = ConfigList.getInitDirList("local", "system");
-                        List<Integer> integers = FileRooter.chmodPreDirPath(preList);
-                        for (int i = 0; i < integers.size(); i++) {
-                            chmodFileList.add(preList.get(i));
-                            chmodIntList.add(integers.get(i));
-                        }
+                        FileRooter.chmodPreDirPath(preList);
                         List<String> backupList = ConfigList.getList("system");
                         testFileNum = 0;
                         for (String s : backupList) {
                             traverseFile(s, stateNum);
                         }
-                        FileRooter.rollBackChmodFiles(integers, chmodFileList);
+                        FileRooter.rollBackChmodFiles(chmodIntList, chmodFileList);
                         System.out.println("测试完成");
                         System.out.println("Directorys: " + testDirNum);
                         System.out.println("Files: " + testFileNum);
@@ -217,9 +215,15 @@ public class SecondActivity extends AppCompatActivity {
     void addSharedPrefs(String fileName,int stateNum){
         SharedPreferences currentSharedPrefs = getSharedPreferences("state"+stateNum,Context.MODE_PRIVATE);
         SharedPreferences.Editor currentEditor = currentSharedPrefs.edit();
-        SharedPreferences initSharedPrefs = getSharedPreferences("state0", Context.MODE_PRIVATE);
+        if(stateNum==1) {
+            String strCurrentMd5 = common.getFileMD5(fileName);
+            currentEditor.putString(fileName,strCurrentMd5);
+            currentEditor.commit();
+            return;
+        }
+        SharedPreferences initSharedPrefs = getSharedPreferences("state1", Context.MODE_PRIVATE);
         SharedPreferences.Editor initEditor = initSharedPrefs.edit();
-        String strExistMd5 = initSharedPrefs.getString(fileName,"null");
+        String strExistMd5 = initSharedPrefs.getString(fileName, "null");
         String strCurrentMd5 = common.getFileMD5(fileName);
         if(strExistMd5.equals("null")||!strExistMd5.equals(strCurrentMd5)){
             currentEditor.putString(fileName, strCurrentMd5);
@@ -314,11 +318,7 @@ public class SecondActivity extends AppCompatActivity {
                 List<String>listTraverseFile = ConfigList.getList(processName);//获取需要遍历的路径
                 FileRooter.createDir(listTraverseFile);//需要备份的文件夹初始可能不存在需要创建
                 List<String>initDirList = ConfigList.getInitDirList("local",processName);
-                List<Integer> integers = FileRooter.chmodPreDirPath(initDirList);//对父级目录进行chmod以便可以正常访问子文件
-                for(int i=0;i<integers.size();i++){
-                    chmodIntList.add(integers.get(i));
-                    chmodFileList.add(initDirList.get(i));
-                }
+                FileRooter.chmodPreDirPath(initDirList);//对父级目录进行chmod以便可以正常访问子文件
                 for (String s : listTraverseFile) {
                     FileBackup.traverseFileCy(SecondActivity.this, s, myHandler);
                 }

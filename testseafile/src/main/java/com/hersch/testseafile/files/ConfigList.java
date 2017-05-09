@@ -31,17 +31,17 @@ public class ConfigList {
             case "system":
                 s.add("/data");
                 s.add("/data/data");
-                s.add("/data/data/com.tencent.mobileqq");
+                s.add("/data/data/"+SecondActivity.processName);
                 //s.add("/data/data/com.android.settings");
                 //s.add("/data/data/com.android.settings/app_webview");
                 //s.add("/data/data/com.tencent.mobileqq/files");
                 //s.add("/data/data/com.tencent.mobileqq/files/nearby_gray_tips_configs");
                 s.add("/data/media");
+                s.add("/data/media/0");
                 s.add("/data/system");
                 s.add("/data/app");
                 s.add("/data/backup");
                 s.add("/data/dalvik-cache");
-                s.add("/data/media/0");
                 break;
             case "com.tencent.mm":
                 s.add("/data");
@@ -50,10 +50,12 @@ public class ConfigList {
                 s.add("/data/data/com.tencent.mm/MicroMsg");
                 s.add("/data/data/com.tencent.mm/shared_prefs");
                 s.add("/data/data/com.tencent.mm/files");
+                s.add("/data/data/com.tencent.mm/tinker");
+                s.add("/data/data/com.tencent.mm/app_tbs");
                 s.add("/data/media");
                 s.add("/data/media/0");
                 s.add("/data/media/0/tencent");
-                //s.add("/data/media/0/tencent/MicroMsg");
+                s.add("/data/media/0/tencent/MicroMsg");
                 s.add("/data/media/0/tencent/vusericon");
                 s.add("/data/media/0/tencent/CDNTemp");
                 break;
@@ -64,6 +66,8 @@ public class ConfigList {
                 s.add("/data/data/com.tencent.mobileqq/databases");
                 s.add("/data/data/com.tencent.mobileqq/shared_prefs");
                 s.add("/data/data/com.tencent.mobileqq/files");
+                s.add("/data/data/com.tencent.mobileqq/files/gm_history");
+                s.add("/data/data/com.tencent.mobileqq/files/ConfigStore2.dat");
                 s.add("/data/media");
                 s.add("/data/media/0");
                 s.add("/data/media/0/tencent");
@@ -89,6 +93,8 @@ public class ConfigList {
             case "com.tencent.mm":
                 s.add("/data/data/com.tencent.mm/MicroMsg");
                 s.add("/data/data/com.tencent.mm/shared_prefs");
+                s.add("/data/data/com.tencent.mm/tinker");
+                s.add("/data/data/com.tencent.mm/app_tbs");
                 //s.add("/data/data/com.tencent.mm/files");
                 //s.add("/data/media/0/tencent/MicroMsg");
                 s.add("/data/media/0/tencent/vusericon");
@@ -97,7 +103,6 @@ public class ConfigList {
             case "com.tencent.mobileqq":
                 s.add("/data/data/com.tencent.mobileqq/databases");
                 s.add("/data/data/com.tencent.mobileqq/shared_prefs");
-                //s.add("/data/data/com.tencent.mobileqq/files");
                 s.add("/data/data/com.tencent.mobileqq/files/gm_history");
                 s.add("/data/data/com.tencent.mobileqq/files/ConfigStore2.dat");
                 //s.add("/data/media/0/tencent/MobileQQ/diskcache");
@@ -107,6 +112,10 @@ public class ConfigList {
                 break;
             case "system":
                 s.add("/data/data");
+                s.add("/data/system");
+                s.add("/data/app");
+                s.add("/data/dalvik-cache");
+                s.add("/data/backup");
                 //s.add("/data/data/com.android.settings/app_webview");
                 //s.add("/data/data/com.tencent.mobileqq/files/nearby_gray_tips_configs");
                 //s.add("/data/media/"+SecondActivity.processName);
@@ -122,14 +131,14 @@ public class ConfigList {
     /**
      * 添加/data/data/com.tencent.mobileqq/用户文件夹(61747311)
      */
-    static List<String> addUserDir(List<String>list,String name){
+    static List<String> addUserDir(List<String>list,String preName){
         List<String>preDirList = new ArrayList<>();
         preDirList.add("/data");
         preDirList.add("/data/media");
         preDirList.add("/data/media/0");
         preDirList.add("/data/media/0/tencent");
         preDirList.add("/data/media/0/tencent/MobileQQ");
-        List<Integer> integers = FileRooter.chmodPreDirPath(preDirList);//chmod 当前路径保证能够访问
+        FileRooter.chmodPreDirPath(preDirList);//chmod 当前路径保证能够访问
         File file = new File("/data/media/0/tencent/MobileQQ");
         File[] files = file.listFiles(new FilenameFilter() {
             @Override
@@ -148,7 +157,7 @@ public class ConfigList {
                 FileBackup.createDirectory(f.getAbsolutePath());
             }
         }
-        FileRooter.rollBackChmodFiles(integers,preDirList);
+        FileRooter.rollBackChmodFiles(SecondActivity.chmodIntList,SecondActivity.chmodFileList);
         return list;
     }
     public static List<String>getEscapeString(){

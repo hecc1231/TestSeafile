@@ -56,14 +56,7 @@ public class FileBackup {
             }
         }
         if (listFile.size() > 0) {
-            List<Integer> fileChmod = FileRooter.cmdZipsAndChmod(listFile);
-            for(Integer integer:fileChmod){
-                SecondActivity.chmodIntList.add(integer);
-            }
-            for(String filePath:listFile){
-                SecondActivity.chmodFileList.add(filePath);
-                SecondActivity.deleteZipList.add(filePath+".gz");
-            }
+            FileRooter.cmdZipsAndChmod(listFile);
             for (int j = 0; j < listFile.size(); j++) {
                 System.out.println(listFile.get(j));
                 storeToPrefsAndUpload(context, listFile.get(j),listFile.get(j)+".gz");//存放并上传文件
