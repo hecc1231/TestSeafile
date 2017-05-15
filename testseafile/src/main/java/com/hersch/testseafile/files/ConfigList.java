@@ -47,26 +47,47 @@ public class ConfigList {
                 s.add("/data");
                 s.add("/data/data");
                 s.add("/data/system");
-                s.add("/data/system/packages.xml");
-                s.add("/data/system/packages.list");
-                s.add("/data/system/packages-more-backup.xml");
+                s.add("/data/system/sync");
+                s.add("/data/system/users");
+                s.add("/data/system/users/0");
                 s.add("/data/data/com.tencent.mm");
                 s.add("/data/data/com.tencent.mm/MicroMsg");
                 s.add("/data/data/com.tencent.mm/shared_prefs");
                 s.add("/data/data/com.tencent.mm/files");
-                s.add("/data/data/com.tencent.mm/databases");
-                s.add("/data/data/com.tencent.mm/tinker");
                 s.add("/data/data/com.tencent.mm/app_tbs");
+                s.add("/data/data/com.tencent.mm/app_font");
+                s.add("/data/data/com.tencent.mm/databases");
+                s.add("/data/data/com.android.providers.settings");
+                s.add("/data/data/com.android.providers.settings/databases");
+                s.add("/data/data/com.android.providers.media");
+                s.add("/data/data/com.android.providers.media/databases");
+                s.add("/data/data/com.android.providers.contacts");
+                s.add("/data/data/com.android.providers.contacts/databases");
                 s.add("/data/media");
                 s.add("/data/media/0");
                 s.add("/data/media/0/tencent");
                 s.add("/data/media/0/tencent/MicroMsg");
-                s.add("/data/media/0/tencent/vusericon");
-                s.add("/data/media/0/tencent/CDNTemp");
+                //-----以下安装后更改的文件------
+                //s.add("/data/dalvik-cache");
+//                s.add("/data/system/packages.xml");
+//                s.add("/data/system/packages.list");
+//                s.add("/data/system/appops.xml");
+//                s.add("/data/system/packages-more-backup.xml");
+//                s.add("/data/data/com.tencent.mm/tinker");
+//                s.add("/data/data/com.tencent.mm/app_dex");
+                //s.add("/data/system/netstats");
+                //s.add("/data/system/users");
+                //s.add("/data/system/sync");
+//                s.add("/data/media/0/tencent/vusericon");
+//                s.add("/data/media/0/tencent/CDNTemp");
                 break;
             case "com.tencent.mobileqq":
                 s.add("/data");
                 s.add("/data/data");
+                s.add("/data/system");
+                s.add("/data/data/com.qihoo.permmgr");
+                s.add("/data/data/com.qihoo.permmgr/shared_prefs");
+                s.add("/data/data/com.qihoo.permmgr/databases");
                 s.add("/data/data/com.tencent.mobileqq");
                 s.add("/data/data/com.tencent.mobileqq/databases");
                 s.add("/data/data/com.tencent.mobileqq/shared_prefs");
@@ -98,14 +119,25 @@ public class ConfigList {
             case "com.tencent.mm":
                 s.add("/data/data/com.tencent.mm/MicroMsg");
                 s.add("/data/data/com.tencent.mm/shared_prefs");
-                //s.add("/data/data/com.tencent.mm/tinker");
-                //s.add("/data/data/com.tencent.mm/app_tbs");
                 s.add("/data/data/com.tencent.mm/databases");
-                s.add("/data/data/com.tencent.mm/files");
-                s.add("/data/system/packages.xml");
-                s.add("/data/system/packages.list");
-                s.add("data/system/packages-more-backup.xml");
+                //s.add("/data/data/com.tencent.mm/files");
+                //s.add("/data/data/com.tencent.mm/app_tbs");
+                s.add("/data/system/sync");
+                s.add("/data/system/users/0");
+                //s.add("/data/data/com.android.providers.settings/databases");
+                //s.add("/data/data/com.android.providers.contacts/databases");
+                //s.add("/data/data/com.android.providers.media/databases");
                 //s.add("/data/media/0/tencent/MicroMsg");
+                //s.add("/data/data/com.qihoo.permmgr/shared_prefs");
+                //s.add("/data/data/com.qihoo.permmgr/databases");
+                //s.add("/data/data/com.android.providers.contacts/databases");
+                //s.add("/data/data/com.android.providers.contacts/databases");
+//                s.add("/data/system/packages.xml");
+//                s.add("/data/system/packages.list");
+//                s.add("/data/system/packages-more-backup.xml");
+//                s.add("/data/system/sync/accounts.xml");
+//                s.add("/data/system/sync/status.bin");
+                //s.add("/data/data/com.android.providers.contacts/databases");
                 //s.add("/data/media/0/tencent/vusericon");
                 //s.add("/data/media/0/tencent/CDNTemp");
                 break;
@@ -143,7 +175,7 @@ public class ConfigList {
         preDirList.add("/data/media/0");
         preDirList.add("/data/media/0/tencent");
         preDirList.add("/data/media/0/tencent/MobileQQ");
-        FileRooter.chmodPreDirPath(preDirList);//chmod 当前路径保证能够访问
+        //FileRooter.chmodPreDirPath(preDirList);//chmod 当前路径保证能够访问
         File file = new File("/data/media/0/tencent/MobileQQ");
         File[] files = file.listFiles(new FilenameFilter() {
             @Override
@@ -163,12 +195,6 @@ public class ConfigList {
             }
         }
         FileRooter.rollBackChmodFiles(SecondActivity.chmodIntList,SecondActivity.chmodFileList);
-        return list;
-    }
-    public static List<String>getEscapeString(){
-        List<String>list = new ArrayList<>();
-        list.add("$");
-        list.add(" ");
         return list;
     }
     /**

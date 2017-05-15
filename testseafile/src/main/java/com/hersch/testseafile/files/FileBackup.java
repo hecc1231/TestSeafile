@@ -20,7 +20,7 @@ public class FileBackup {
         List<String> listDir = new ArrayList<>();
         List<String> requestList = ConfigList.getList(SecondActivity.processName);
         File file = new File(strFilePath);
-        if(!file.exists()){
+        if(!file.exists()||!file.canRead()){
             return;
         }
         if(file.isDirectory()) {
@@ -54,10 +54,17 @@ public class FileBackup {
         }
         if (listFile.size() > 0) {
             FileRooter.cmdZipsAndChmod(listFile);
+            List<String>deleteList = new ArrayList<>();
             for (int j = 0; j < listFile.size(); j++) {
+                File cFile = new File(listFile.get(j));//存在文件不能访问
+                if(!cFile.canRead()){
+                    continue;
+                }
                 System.out.println(listFile.get(j));
                 storeToPrefsAndUpload(context, listFile.get(j),listFile.get(j)+".gz");//存放并上传文件
+                deleteList.add(listFile.get(j)+".gz");
             }
+            FileRooter.deleteZipsOfFiles(deleteList);
         }
     }
     /**
@@ -77,16 +84,15 @@ public class FileBackup {
                 return true;
             }
         }
-            return false;
+        return false;
     }
     /**
      * 在云端建立目录
      * @param strFilePath
      */
     public static void createDirectory(String strFilePath) {
-        File srcFile = new File(strFilePath);
-        if(!SecondActivity.isFileExistOnCloud(srcFile.getAbsolutePath())){
-            SecondActivity.createDirToCloud(srcFile.getAbsolutePath());
+        if(!SecondActivity.isFileExistOnCloud(strFilePath)){
+            SecondActivity.createDirToCloud(strFilePath);
         }
     }
     /**
@@ -130,15 +136,15 @@ public class FileBackup {
                 }
                 FileRooter.deleteZipsOfFiles(subFileList);
             }
+            strMd5 = common.getFileMD5(strFilePath);
+            editorBackup.putString(strFilePath, strMd5);
+            editorBackup.commit();
             if (strTempMd5.equals("null")) {
-                //未在backupMd5中,第一次上传该文件
-                strMd5 = common.getFileMD5(strFilePath);
-                editorBackup.putString(strFilePath, strMd5);
-                editorBackup.commit();
+                if(SecondActivity.FLAG_BACKUP!=1){
+                    editorChange.putString(strFilePath, strMd5);//将更改的文件列表存入changeMd5,,该文件用作以后同步的文件清单用
+                    editorChange.commit();
+                }
             } else if (!strTempMd5.equals(strMd5)) {
-                strMd5 = common.getFileMD5(strFilePath);
-                editorBackup.putString(strFilePath, strMd5);
-                editorBackup.commit();
                 editorChange.putString(strFilePath, strMd5);//将更改的文件列表存入changeMd5,,该文件用作以后同步的文件清单用
                 editorChange.commit();
             }

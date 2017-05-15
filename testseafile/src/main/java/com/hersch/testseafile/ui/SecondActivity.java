@@ -2,17 +2,16 @@ package com.hersch.testseafile.ui;
 
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
+
 import android.content.SharedPreferences;
-import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.widget.AdapterView;
@@ -42,10 +41,12 @@ import com.hersch.testseafile.files.common;
 public class SecondActivity extends AppCompatActivity {
     static String strToken = MainActivity.strToken;
     static String strCookie = MainActivity.strCookie;
-    public final static int MSG_COMPLETE_BACKUP = 1;
+    public final static int MSG_COMPLETE_BACKUP = 0;
+    public static int FLAG_BACKUP = 0;//记录是否初次备份(与同步清单有关)
     public final static int MSG_COMPLETE_SYNC = 2;
     public final static int MSG_BACKUP_FILE_INFO = 3;
     public final static int MSG_NOT_SYNC = 5;
+    public final static int SNAP_VERSION_NUM=5;//历史快照最多保存五份
     public static List<Integer>chmodIntList = new ArrayList<>();
     public static List<String>chmodFileList = new ArrayList<>();
     public static List<String>deleteZipList = new ArrayList<>();
@@ -59,14 +60,14 @@ public class SecondActivity extends AppCompatActivity {
     public static String strRootId = MainActivity.strRootId;
     public static byte[] m_binArray = null;
     public static String strCurrentPath = "/data/data/com.hersch.testseafile";
-    public int stateNum = 0;
     static int testDirNum = 0;
     static int testFileNum = 0;
+    static int stateNum = 0;//快照状态记录
     Button btnRecovery;
     Button btnBackup;
     Button btnTest;
     TextView tvFileScanner;
-    Context context;
+    static Context context;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -293,7 +294,7 @@ public class SecondActivity extends AppCompatActivity {
     void initList(){
         chmodFileList.clear();
         chmodIntList.clear();
-        deleteZipList.clear();
+        //deleteZipList.clear();
     }
     void backupToSeafile(){
         btnBackup.setText("数据备份中.....");
@@ -304,18 +305,22 @@ public class SecondActivity extends AppCompatActivity {
                 initList();//初始化chmodIntList和chmodFileList
                 initPreDirOnCloud();//在云端创建父级目录如/data/data/com.tencent.mm之前的/data文件和/data/data
                 List<String>listTraverseFile = ConfigList.getList(processName);//获取需要遍历的路径
-                FileRooter.createDir(listTraverseFile);//需要备份的文件夹初始可能不存在需要创建
+                //FileRooter.createDir(listTraverseFile);//需要备份的文件夹初始可能不存在需要创建
                 List<String>initDirList = ConfigList.getInitDirList("local",processName);
                 FileRooter.chmodPreDirPath(initDirList);//对父级目录进行chmod以便可以正常访问子文件
+                if(!isFileExistOnCloud("/"+processName+"/backupMd5_"+processName+".xml")){
+                    FLAG_BACKUP = 1;
+                }
+                else{
+                    FLAG_BACKUP = 0;
+                }//根据云端是否存在备份应用文件判断是否首次备份
                 for (String s : listTraverseFile) {
                     FileBackup.traverseFileCy(SecondActivity.this, s, myHandler);
                 }
                 System.out.println("----->还原文件权限中");
                 FileRooter.rollBackChmodFiles(chmodIntList, chmodFileList);
-                System.out.println("----->删除文件压缩包中<------");
-                FileRooter.deleteZipsOfFiles(deleteZipList);
                 System.out.println("---->备份xml到云端....");
-                syncSharedPrefsToCloud("backupMd5_"+processName+".xml");//将备份后的md文件备份到云端
+                syncSharedPrefsToCloud("backupMd5_" + processName + ".xml");//将备份后的md文件备份到云端
                 syncSharedPrefsToCloud("changeMd5_"+processName+".xml");
                 System.out.println("----->备份xml完成");
                 sendMsg(MSG_COMPLETE_BACKUP);
@@ -344,11 +349,8 @@ public class SecondActivity extends AppCompatActivity {
                         //本地不存在说明还未进行备份,从服务端下载上次备份到云端的文件覆盖本地
                         downloadFile(changeMd5File.getAbsolutePath(), "/"+processName+"/changeMd5_"+processName+".xml");
                         downloadFile(changeMd5File.getAbsolutePath(), "/"+processName+"/backupMd5_"+processName+".xml");
-//                        backupMd5Editor.commit();
-//                        changeMd5Editor.commit();
                     }
                     Map<String, ?> map = changeMd5Prefs.getAll();
-                    //FileRooter.chmodFiles(777, map);//将同步的文件批量chmod
                     List<String> srcZipFilePath = new ArrayList<String>();
                     List<String> desZipFilePath = new ArrayList<String>();
                     for (String key : map.keySet()) {
@@ -365,10 +367,15 @@ public class SecondActivity extends AppCompatActivity {
                         }
                         else {
                             List<String> splitList = FileSM.getSplitListFromCloud(strCloudPath);//列表存放在云端上的路径
+                            if(splitList.size()==0){
+                                //说明云端不存在该文件且不是大文件，文件可能丢失
+                                continue;
+                            }
                             if (FileSM.isCompleteSplitNum(splitList)) {//判断分割后的文件是否完整
                                 for (int i = 0; i < splitList.size(); i++) {
-                                    String splitZipName = splitList.get(i);
-                                    downloadFile(strCurrentPath + splitZipName, strCloudPath);
+                                    String splitZipName = splitList.get(i);//云端路径/com.tencent.mm
+                                    String localPath = splitZipName.substring(processName.length()+1);
+                                    downloadFile(strCurrentPath + localPath, splitZipName);
                                     System.out.println(splitZipName + " is downloaded");
                                 }
                                 FileSM.merge(strCurrentPath + zipName, splitList);

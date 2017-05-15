@@ -67,45 +67,45 @@ public class MainActivity extends AppCompatActivity {
         strIpAddress = editTextIpAddress.getText().toString();
         strUserName = editTextUserName.getText().toString();
         strPassword = editTextPassword.getText().toString();
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                        if (Network.isNetWorkAvailable(getApplicationContext())) {
-                            try {
-                                strCookie = HttpRequest.sendGetHeadItem("http://" + strIpAddress
-                                        + ":8000/accounts/login/", "Set-Cookie");
-                                int i3 = strCookie.indexOf("csrftoken") + 10;
-                                int i4 = strCookie.indexOf(";", i3);
-                                strToken = strCookie.substring(i3, i4);
-                                System.out.println("****" + strToken);
-                                System.out.println();
-                                String strSession = HttpRequest.sendPost("http://" + strIpAddress
-                                                + ":8000/accounts/login/?next=/", "csrfmiddlewaretoken="
-                                                + strToken
-                                                + "&login=" + strUserName + "&password=" + strPassword + "&next=/",
-                                        "django_language=en; " + strCookie);
-                                System.out.println("****" + strSession);
-                                strCookie = strSession + " csrftoken=" + strToken;//更新新的sessionid和token组合成认证Cookie
-                                System.out.println("New Cookie....." + strCookie);
-                                String strRoot = HttpRequest.sendGet("http://" + strIpAddress
-                                                + ":8000/api2/repos/", "type=mine&_=1481540118100",
-                                        strCookie);
-                                System.out.println("****" + strRoot);
-                                int i1 = strRoot.indexOf("id") + 6;
-                                int i2 = strRoot.indexOf(",", i1);
-                                strRootId = strRoot.substring(i1, i2 - 1);//保存id
-                                System.out.println(strRootId);
-                                sendMsg(MSG_SUCCESS_LOGIN);
-                            } catch (StringIndexOutOfBoundsException e) {
-                                sendMsg(MSG_UNSUCCESS_LOGIN);
-                                e.printStackTrace();
-                            }
-                        }
-                    else {
-                            sendMsg(MSG_UNSUCESS_NETWORK);
-                        }
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if (Network.isNetWorkAvailable(getApplicationContext())) {
+                    try {
+                        strCookie = HttpRequest.sendGetHeadItem("http://" + strIpAddress
+                                + ":8000/accounts/login/", "Set-Cookie");
+                        int i3 = strCookie.indexOf("csrftoken") + 10;
+                        int i4 = strCookie.indexOf(";", i3);
+                        strToken = strCookie.substring(i3, i4);
+                        System.out.println("****" + strToken);
+                        System.out.println();
+                        String strSession = HttpRequest.sendPost("http://" + strIpAddress
+                                        + ":8000/accounts/login/?next=/", "csrfmiddlewaretoken="
+                                        + strToken
+                                        + "&login=" + strUserName + "&password=" + strPassword + "&next=/",
+                                "django_language=en; " + strCookie);
+                        System.out.println("****" + strSession);
+                        strCookie = strSession + " csrftoken=" + strToken;//更新新的sessionid和token组合成认证Cookie
+                        System.out.println("New Cookie....." + strCookie);
+                        String strRoot = HttpRequest.sendGet("http://" + strIpAddress
+                                        + ":8000/api2/repos/", "type=mine&_=1481540118100",
+                                strCookie);
+                        System.out.println("****" + strRoot);
+                        int i1 = strRoot.indexOf("id") + 6;
+                        int i2 = strRoot.indexOf(",", i1);
+                        strRootId = strRoot.substring(i1, i2 - 1);//保存id
+                        System.out.println(strRootId);
+                        sendMsg(MSG_SUCCESS_LOGIN);
+                    } catch (StringIndexOutOfBoundsException e) {
+                        sendMsg(MSG_UNSUCCESS_LOGIN);
+                        e.printStackTrace();
+                    }
                 }
-            }).start();
+                else {
+                    sendMsg(MSG_UNSUCESS_NETWORK);
+                }
+            }
+        }).start();
     }
     private Handler myHandler = new Handler(){
         @Override
@@ -125,6 +125,11 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 case MSG_UNSUCESS_NETWORK:
                     Toast.makeText(MainActivity.this,"无法连接网络，请检查联网",Toast.LENGTH_SHORT).show();
+                    btnLogin.setEnabled(false);
+                    btnLogin.setText("已登录");
+                    Intent myIntent = new Intent(MainActivity.this,SecondActivity.class);
+                    startActivity(myIntent);
+                    finish();
                     break;
             }
         }
