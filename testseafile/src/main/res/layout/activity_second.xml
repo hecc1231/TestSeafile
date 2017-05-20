@@ -3,51 +3,65 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/bg"
     android:orientation="vertical"
-    android:paddingLeft="@dimen/activity_horizontal_margin"
-    android:paddingRight="@dimen/activity_horizontal_margin"
-    android:paddingTop="@dimen/activity_vertical_margin"
-    android:paddingBottom="@dimen/activity_vertical_margin"
     tools:context=".SecondActivity">
     <LinearLayout
         android:layout_height="wrap_content"
         android:layout_width="fill_parent"
-        android:layout_weight="1"
         android:gravity="center"
-        android:orientation="horizontal">
-       <Spinner
-           android:layout_width="fill_parent"
-           android:layout_height="wrap_content"
-           android:id="@+id/spinner">
-       </Spinner>
+        android:layout_weight="3">
+       <!--<Spinner-->
+           <!--android:layout_width="fill_parent"-->
+           <!--android:layout_height="wrap_content"-->
+           <!--android:id="@+id/spinner">-->
+       <!--</Spinner>-->
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="30dp"
+            android:padding="5dp"
+            android:layout_centerInParent="true"
+            android:text="选择应用"
+            android:background="@drawable/bg_btn_select"
+            android:textColor="@android:color/white"
+            android:id="@+id/btnSelectApp"/>
     </LinearLayout>
     <LinearLayout
-        android:layout_weight="2"
+        android:layout_weight="1"
         android:orientation="vertical"
-        android:gravity="center"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content">
-        <TextView
-            android:singleLine="true"
-            android:ellipsize="start"
-            android:maxEms="20"
-            android:layout_width="fill_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/tvFileScanner"
-            android:hint="scan fileList"/>
+        <!--<TextView-->
+            <!--android:singleLine="true"-->
+            <!--android:ellipsize="start"-->
+            <!--android:background="@android:color/white"-->
+            <!--android:maxEms="20"-->
+            <!--android:layout_width="fill_parent"-->
+            <!--android:layout_height="wrap_content"-->
+            <!--android:id="@+id/tvFileScanner"-->
+            <!--android:hint="scan fileList"/>-->
         <Button
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
+            android:layout_margin="5dp"
+            android:background="@drawable/bg_btn_select"
+            android:textColor="@color/color_btn"
             android:id="@+id/btnBackup"
             android:text="备份数据"/>
         <Button
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
+            android:layout_margin="5dp"
+            android:background="@drawable/bg_btn_select"
+            android:textColor="@color/color_btn"
             android:id="@+id/btnRecovery"
             android:text="同步数据"/>
         <Button
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
+            android:layout_margin="5dp"
+            android:background="@drawable/bg_btn_select"
+            android:textColor="@color/color_btn"
             android:id="@+id/btnTest"
             android:text="测试"/>
     </LinearLayout>

@@ -21,7 +21,7 @@ import java.util.regex.Pattern;
  * Created by Hersch on 2017/4/27.
  */
 public class FileSM {
-    public static final int MIN_FILE_SIZE = 1024*1024*10;//超过10M
+    public static final int MIN_FILE_SIZE = 1024*1024*5;//超过10M
     static Process process = null;
     static DataOutputStream dataOutputStream = null;
     /**

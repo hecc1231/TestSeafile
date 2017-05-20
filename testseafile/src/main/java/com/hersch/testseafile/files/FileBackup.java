@@ -16,6 +16,7 @@ import java.util.List;
 public class FileBackup {
     public static void traverseFileCy(Context context,String strFilePath,Handler handler) {
         //创建目录
+        String cloudPremix = "/"+SecondActivity.processName+"/version_"+SecondActivity.version;
         List<String> listFile = new ArrayList<>();
         List<String> listDir = new ArrayList<>();
         List<String> requestList = ConfigList.getList(SecondActivity.processName);
@@ -45,9 +46,11 @@ public class FileBackup {
         if (listDir.size() > 0) {
             FileRooter.getAccessFromFiles(listDir);//获取当前目录下文件夹权限并将文件夹chmod为777
             for (int j = 0; j < listDir.size(); j++) {
-                if(listDir.get(j).length()>0) {//文件夹不空才记录
+                File dir = new File(listDir.get(j));
+                System.out.println(dir.getAbsolutePath()+"---文件夹大小---"+dir.getTotalSpace());
+                if(dir.list().length>0) {//文件夹不空才记录
                     System.out.println(listDir.get(j));
-                    createDirectory("/"+SecondActivity.processName+listDir.get(j));
+                    createDirectory(cloudPremix+listDir.get(j));
                     traverseFileCy(context, listDir.get(j), handler);
                 }
             }
@@ -101,18 +104,22 @@ public class FileBackup {
      * @param strFilePath
      */
     public static void storeToPrefsAndUpload(Context context, String strFilePath,String zipFilePath){
-        String strMd5 = common.getFileMD5(strFilePath);
-        SharedPreferences sharedPrefsBackupMd5 = context.getSharedPreferences("backupMd5_"+SecondActivity.processName, Context.MODE_PRIVATE);
-        SharedPreferences sharedPrefsChange = context.getSharedPreferences("changeMd5_"+SecondActivity.processName,Context.MODE_PRIVATE);
+        String cloudPremix = "/"+SecondActivity.processName+"/version_"+SecondActivity.version;
+        String strMd5 = common.getMd5ByFile(strFilePath);
+//        SharedPreferences sharedPrefsBackupMd5 = context.getSharedPreferences("backupMd5_"+SecondActivity.processName, Context.MODE_PRIVATE);
+//        SharedPreferences sharedPrefsChange = context.getSharedPreferences("changeMd5_"+SecondActivity.processName,Context.MODE_PRIVATE);
+//        SharedPreferences.Editor editorBackup = sharedPrefsBackupMd5.edit();
+//        SharedPreferences.Editor editorChange = sharedPrefsChange.edit();
+        SharedPreferences sharedPrefsBackupMd5 = context.getSharedPreferences(SecondActivity.processName + "_version_0",
+                Context.MODE_PRIVATE);
         SharedPreferences.Editor editorBackup = sharedPrefsBackupMd5.edit();
-        SharedPreferences.Editor editorChange = sharedPrefsChange.edit();
-        editorChange.commit();
-        editorBackup.commit();
+        //editorBackup.commit();
         String strTempMd5= sharedPrefsBackupMd5.getString(strFilePath, "null");//null代表返回的缺省值
+        //首先合并此前状态的所有change_version的文件
         if(strTempMd5.equals("null")||!strTempMd5.equals(strMd5)) {
             File srcFile = new File(strFilePath);//判断源文件的大小
             if(srcFile.length()<FileSM.MIN_FILE_SIZE) {
-                String strCloudFilePath = "/"+SecondActivity.processName+zipFilePath;
+                String strCloudFilePath = cloudPremix+zipFilePath;
                 File cloudFile = new File(strCloudFilePath);
                 if (SecondActivity.isFileExistOnCloud(strCloudFilePath)) {
                     SecondActivity.uploadFile("update", zipFilePath,
@@ -125,7 +132,7 @@ public class FileBackup {
             else{
                 List<String>subFileList = FileSM.split(zipFilePath);
                 for(String s:subFileList){
-                    File cloudFile = new File("/"+SecondActivity.processName+s);
+                    File cloudFile = new File(cloudPremix+s);
                     if (SecondActivity.isFileExistOnCloud(cloudFile.getAbsolutePath())) {
                         SecondActivity.uploadFile("update", s,
                                 cloudFile.getName(), cloudFile.getParent());
@@ -136,17 +143,29 @@ public class FileBackup {
                 }
                 FileRooter.deleteZipsOfFiles(subFileList);
             }
-            strMd5 = common.getFileMD5(strFilePath);
-            editorBackup.putString(strFilePath, strMd5);
-            editorBackup.commit();
-            if (strTempMd5.equals("null")) {
-                if(SecondActivity.FLAG_BACKUP!=1){
-                    editorChange.putString(strFilePath, strMd5);//将更改的文件列表存入changeMd5,,该文件用作以后同步的文件清单用
-                    editorChange.commit();
-                }
-            } else if (!strTempMd5.equals(strMd5)) {
-                editorChange.putString(strFilePath, strMd5);//将更改的文件列表存入changeMd5,,该文件用作以后同步的文件清单用
+//            strMd5 = common.getFileMD5(strFilePath);
+//            editorBackup.putString(strFilePath, strMd5);
+//            editorBackup.commit();
+//            if (strTempMd5.equals("null")) {
+//                if(SecondActivity.FLAG_BACKUP!=1){
+//                    editorChange.putString(strFilePath, strMd5);//将更改的文件列表存入changeMd5,,该文件用作以后同步的文件清单用
+//                    editorChange.commit();
+//                }
+//            } else if (!strTempMd5.equals(strMd5)) {
+//                editorChange.putString(strFilePath, strMd5);//将更改的文件列表存入changeMd5,,该文件用作以后同步的文件清单用
+//                editorChange.commit();
+//            }
+            if(SecondActivity.version!=0) {
+                SharedPreferences sharedPrefsChange = context.getSharedPreferences(SecondActivity.processName + "_version_" + SecondActivity.version,
+                        Context.MODE_PRIVATE);
+                SharedPreferences.Editor editorChange = sharedPrefsChange.edit();
                 editorChange.commit();
+                editorChange.putString(strFilePath,strMd5);
+                editorChange.commit();
+            }
+            else{
+                editorBackup.putString(strFilePath,strMd5);
+                editorBackup.commit();
             }
         }
     }

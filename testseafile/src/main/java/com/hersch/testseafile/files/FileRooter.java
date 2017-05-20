@@ -4,6 +4,8 @@ import android.content.SharedPreferences;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.hersch.testseafile.net.HttpRequest;
+import com.hersch.testseafile.ui.MainActivity;
 import com.hersch.testseafile.ui.SecondActivity;
 
 import org.apache.commons.lang.StringEscapeUtils;
@@ -16,10 +18,13 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.prefs.PreferenceChangeEvent;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.crypto.SealedObject;
 
@@ -32,15 +37,6 @@ public class FileRooter {
     static DataOutputStream dataOutputStream = null;
     public static void requestRoot(){
         initProcess();
-//        try{
-//            //ProcessBuilder processBuilder = new ProcessBuilder("su");
-//            //Process process = processBuilder.start();
-//            process = Runtime.getRuntime().exec("su");
-////            process.destroy();
-//            process.destroy();
-//        }catch (Exception e){
-//            e.printStackTrace();
-//        }
     }
     /**
      * 初始化进程
@@ -52,16 +48,11 @@ public class FileRooter {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-//        if(processBuilder==null){
-//            processBuilder = new ProcessBuilder("su");
-//        }
     }
     public static void deleteZipsOfFiles(List<String> fileList){
-        //initProcess();
         try {
             ProcessBuilder processBuilder = new ProcessBuilder("su");
             process = processBuilder.start();
-            //Process process = Runtime.getRuntime().exec("su");
             dataOutputStream = new DataOutputStream(process.getOutputStream());
             for(String strFilePath:fileList) {
                 strFilePath = escapeString(strFilePath);
@@ -83,9 +74,7 @@ public class FileRooter {
         }
     }
     public static void cmdChmod(List<String>files){
-        //initProcess();
         try {
-//            Process process = Runtime.getRuntime().exec("su");
             ProcessBuilder processBuilder = new ProcessBuilder("su");
             process = processBuilder.start();
             dataOutputStream = new DataOutputStream(process.getOutputStream());
@@ -117,9 +106,7 @@ public class FileRooter {
         }
     }
     public static void cmdZipsAndChmod(List<String>files){
-        //initProcess();
         try {
-            //Process process = Runtime.getRuntime().exec("su");
             ProcessBuilder processBuilder = new ProcessBuilder("su");
             processBuilder.redirectErrorStream(true);
             process = processBuilder.start();
@@ -225,6 +212,24 @@ public class FileRooter {
             }
         }
     }
+    public static int getVersionFromCloud(String strParentPath) {
+        //获取云端分割文件的个数
+        String strFile = HttpRequest.sendGet("http://" + HttpRequest.strIpAddress
+                        + ":8000/ajax/lib/" + MainActivity.strRootId + "/dir/",
+                "p=" + strParentPath + "&thumbnail_size=48&&_=14815507370953",
+                MainActivity.strCookie);
+        String regEx ="version_[0-9]+";
+        Pattern pattern = Pattern.compile(regEx);
+        Matcher matcher = pattern.matcher(strFile);
+        int maxNo=-1;
+        while (matcher.find()) {
+            String s = matcher.group();
+            int i1 = s.lastIndexOf("_");
+            int no = Integer.parseInt(s.substring(i1+1));
+            maxNo = maxNo<no?no:maxNo;
+        }
+        return maxNo;
+    }
     public static void createDir(List<String>dirList) {
         try {
             ProcessBuilder processBuilder = new ProcessBuilder("su");
@@ -279,6 +284,9 @@ public class FileRooter {
                 String str = bufferedReader.readLine();
                 if(str.contains("No such file")){
                     continue;
+                    //File currentFile = new File(desFilePath);
+                    //String parentPath=  currentFile.getParent();
+                    //dataOutputStream.writeBytes("mkdir -p "+parentPath+"\n");
                 }
                 dataOutputStream.writeBytes("gzip -c -d " + srcFilePath + ">" + desFilePath + "\n");
                 System.out.println(srcFilePath + "---- unzip to ----" + desFilePath);
@@ -318,10 +326,14 @@ public class FileRooter {
         }
         return sum;
     }
+
+    /**
+     * 返回每个文件夹的大小
+     * @param files
+     */
     public static void getAccessFromFiles(List<String>files){
-        //initProcess();
+        List<String>s = new ArrayList<>();
         try {
-            //process = Runtime.getRuntime().exec("su");
             ProcessBuilder processBuilder = new ProcessBuilder("su");
             process = processBuilder.start();
             processBuilder.redirectErrorStream(true);

@@ -11,13 +11,9 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -42,15 +38,17 @@ public class SecondActivity extends AppCompatActivity {
     static String strToken = MainActivity.strToken;
     static String strCookie = MainActivity.strCookie;
     public final static int MSG_COMPLETE_BACKUP = 0;
+    public static int version = 0;//表明当前备份的版本
     public static int FLAG_BACKUP = 0;//记录是否初次备份(与同步清单有关)
     public final static int MSG_COMPLETE_SYNC = 2;
     public final static int MSG_BACKUP_FILE_INFO = 3;
+    public final static int MSG_VERSION_NUM = 4;
     public final static int MSG_NOT_SYNC = 5;
     public final static int SNAP_VERSION_NUM=5;//历史快照最多保存五份
     public static List<Integer>chmodIntList = new ArrayList<>();
     public static List<String>chmodFileList = new ArrayList<>();
     public static List<String>deleteZipList = new ArrayList<>();
-    public static String processName = "";
+    public static String processName = null;
     static String strIpAddress = HttpRequest.strIpAddress;//
     static String strFirstFile = "------WebKitFormBoundaryWwA1f0fjjPetVzQa\r\nContent-Disposition: form-data; name=\"parent_dir\"\r\n\r\n";
     static String strTargetFile = "\r\n------WebKitFormBoundaryWwA1f0fjjPetVzQa\r\nContent-Disposition: form-data; name=\"target_file\"\r\n\r\n";
@@ -66,6 +64,7 @@ public class SecondActivity extends AppCompatActivity {
     Button btnRecovery;
     Button btnBackup;
     Button btnTest;
+    Button btnSelect;
     TextView tvFileScanner;
     static Context context;
     @Override
@@ -76,8 +75,31 @@ public class SecondActivity extends AppCompatActivity {
         findView();
     }
     void findView() {
-        initSpinner();
-        tvFileScanner = (TextView) findViewById(R.id.tvFileScanner);
+        //initSpinner();
+        //tvFileScanner = (TextView) findViewById(R.id.tvFileScanner);
+        btnSelect = (Button)findViewById(R.id.btnSelectApp);
+        btnSelect.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(SecondActivity.this);
+                builder.setIcon(R.drawable.icon);
+                builder.setTitle("选择一个App");
+                //    指定下拉列表的显示数据
+                final String[] apps = ConfigList.getAppList();
+                //    设置一个下拉的列表选择项
+                builder.setItems(apps, new DialogInterface.OnClickListener()
+                {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which)
+                    {
+                        processName = apps[which];
+                        Toast.makeText(SecondActivity.this, "选择的应用为：" + apps[which], Toast.LENGTH_SHORT).show();
+                        btnSelect.setText(processName);
+                    }
+                });
+                builder.show();
+            }
+        });
         btnBackup = (Button) findViewById(R.id.btnBackup);
         btnBackup.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -102,12 +124,13 @@ public class SecondActivity extends AppCompatActivity {
                     Toast.makeText(SecondActivity.this, "请选择应用", Toast.LENGTH_SHORT).show();
                     return;
                 }
+                System.out.println(processName);
                 Context context = getApplicationContext();
                 if (CustomProcess.isProcessRunning(context, processName) || CustomProcess.isServiceRunning(context, processName)) {
                     //当前微信正在运行
                     createRecoveryDialg();//弹出确认框
                 } else {
-                    recoveryToApp();
+                    getVersionFromCloud();
                 }
             }
         });
@@ -118,6 +141,7 @@ public class SecondActivity extends AppCompatActivity {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
+                        processName = "org.mozilla.firefox";
                         stateNum++;
                         chmodFileList.clear();
                         chmodIntList.clear();
@@ -148,7 +172,7 @@ public class SecondActivity extends AppCompatActivity {
         File[] files = file.listFiles();
         for (int j = 0; j < files.length; j++) {
             if (files[j].isDirectory()) {
-                if(strFilePath.equals("/data/data")){
+                if(strFilePath.equals("/data/data")||strFilePath.equals("/data/user/0")){
                     if(isSystemApp(files[j].getName())||files[j].getName().equals(processName)){
                         listDir.add(files[j].getAbsolutePath());
                     }
@@ -202,7 +226,7 @@ public class SecondActivity extends AppCompatActivity {
         return false;
     }
     void addSharedPrefs(String fileName,int stateNum){
-        SharedPreferences currentSharedPrefs = getSharedPreferences("state"+stateNum,Context.MODE_PRIVATE);
+        SharedPreferences currentSharedPrefs = getSharedPreferences("state" + stateNum, Context.MODE_PRIVATE);
         SharedPreferences.Editor currentEditor = currentSharedPrefs.edit();
         if(stateNum==1) {
             String strCurrentMd5 = common.getFileMD5(fileName);
@@ -222,23 +246,23 @@ public class SecondActivity extends AppCompatActivity {
         }
     }
     void initSpinner() {
-        List<String>list = ConfigList.getAppList();
-        Spinner sp = (Spinner) findViewById(R.id.spinner);
-        final ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, list);
-        sp.setAdapter(adapter);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        sp.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                ArrayAdapter<String> arrayAdapter = (ArrayAdapter<String>) parent.getAdapter();
-                String content = arrayAdapter.getItem(position);
-                processName = content;
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-            }
-        });
+//        List<String>list = ConfigList.getAppList();
+//        Spinner sp = (Spinner) findViewById(R.id.spinner);
+//        final ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, list);
+//        sp.setAdapter(adapter);
+//        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+//        sp.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+//            @Override
+//            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+//                ArrayAdapter<String> arrayAdapter = (ArrayAdapter<String>) parent.getAdapter();
+//                String content = arrayAdapter.getItem(position);
+//                processName = content;
+//            }
+//
+//            @Override
+//            public void onNothingSelected(AdapterView<?> parent) {
+//            }
+//        });
     }
 
     //退出微信提示框
@@ -262,6 +286,32 @@ public class SecondActivity extends AppCompatActivity {
         });
         builder.create().show();
     }
+
+    /**
+     * 弹出同步版本选择窗口
+     */
+    void createRecoverVersionDialg(){
+        AlertDialog.Builder builder = new AlertDialog.Builder(SecondActivity.this);
+        builder.setIcon(R.drawable.icon);
+        builder.setTitle("选择一个版本同步");
+        //    指定下拉列表的显示数据
+        final String[] versions = new String[version+1];
+        for(int i=0;i<=version;i++){
+            versions[i] = "version_"+i;
+        }
+        //    设置一个下拉的列表选择项
+        builder.setItems(versions, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String strVersion = versions[which];
+                int index = strVersion.lastIndexOf("_");
+                version = Integer.parseInt(strVersion.substring(index + 1));
+                Toast.makeText(SecondActivity.this, "选择的版本为：" + version, Toast.LENGTH_SHORT).show();
+                recoveryToApp();
+            }
+        });
+        builder.show();
+    }
     /**
      * 弹出确认关闭应用的窗口
      */
@@ -274,7 +324,8 @@ public class SecondActivity extends AppCompatActivity {
             public void onClick(DialogInterface dialog, int which) {
                 dialog.dismiss();
                 CustomProcess.kill(processName);
-                recoveryToApp();
+                //recoveryToApp();
+                getVersionFromCloud();
             }
         });
         builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
@@ -294,7 +345,19 @@ public class SecondActivity extends AppCompatActivity {
     void initList(){
         chmodFileList.clear();
         chmodIntList.clear();
-        //deleteZipList.clear();
+    }
+    void createSharedPrefs(){
+        //创建当前备份版本的备份清单
+        SharedPreferences sharedPrefsBackupMd5 = context.getSharedPreferences(SecondActivity.processName + "_version_0",
+                Context.MODE_PRIVATE);
+        SharedPreferences.Editor editorBackup = sharedPrefsBackupMd5.edit();
+        editorBackup.commit();
+        if(version!=0){
+            SharedPreferences sharedPrefsChangeMd5 = context.getSharedPreferences(SecondActivity.processName + "_version_"+version,
+                    Context.MODE_PRIVATE);
+            SharedPreferences.Editor editorChangeMd5 = sharedPrefsChangeMd5.edit();
+            editorChangeMd5.commit();
+        }
     }
     void backupToSeafile(){
         btnBackup.setText("数据备份中.....");
@@ -302,29 +365,41 @@ public class SecondActivity extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                initList();//初始化chmodIntList和chmodFileList
+                initList();
+                int versionNo = FileRooter.getVersionFromCloud("/"+processName);//判断本次备份时第几版本
+                if(versionNo>5){
+                    System.out.println("备份达到上限,请清除备份");
+                }
+                version = versionNo+1;//当前版本
+                System.out.println("当前版本"+version);
+                createSharedPrefs();
                 initPreDirOnCloud();//在云端创建父级目录如/data/data/com.tencent.mm之前的/data文件和/data/data
                 List<String>listTraverseFile = ConfigList.getList(processName);//获取需要遍历的路径
-                //FileRooter.createDir(listTraverseFile);//需要备份的文件夹初始可能不存在需要创建
                 List<String>initDirList = ConfigList.getInitDirList("local",processName);
                 FileRooter.chmodPreDirPath(initDirList);//对父级目录进行chmod以便可以正常访问子文件
-                if(!isFileExistOnCloud("/"+processName+"/backupMd5_"+processName+".xml")){
-                    FLAG_BACKUP = 1;
-                }
-                else{
-                    FLAG_BACKUP = 0;
-                }//根据云端是否存在备份应用文件判断是否首次备份
                 for (String s : listTraverseFile) {
                     FileBackup.traverseFileCy(SecondActivity.this, s, myHandler);
                 }
                 System.out.println("----->还原文件权限中");
                 FileRooter.rollBackChmodFiles(chmodIntList, chmodFileList);
                 System.out.println("---->备份xml到云端....");
-                syncSharedPrefsToCloud("backupMd5_" + processName + ".xml");//将备份后的md文件备份到云端
-                syncSharedPrefsToCloud("changeMd5_"+processName+".xml");
+                syncSharedPrefsToCloud(SecondActivity.processName + "_version_" + version+".xml");
                 System.out.println("----->备份xml完成");
                 sendMsg(MSG_COMPLETE_BACKUP);
                 }
+        }).start();
+    }
+
+    /**
+     * 从云端获取版本数
+     */
+    void getVersionFromCloud(){
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                version = FileRooter.getVersionFromCloud("/"+processName);
+                sendMsg(MSG_VERSION_NUM);
+            }
         }).start();
     }
     void recoveryToApp(){
@@ -334,58 +409,27 @@ public class SecondActivity extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                File changeMd5File = new File(strCurrentPath +"/shared_prefs/changeMd5_"+processName+".xml");
-                File backupMd5File = new File(strCurrentPath+"/shared_prefs/backupMd5_"+processName+".xml");
-                SharedPreferences backupMd5Prefs = context.getSharedPreferences("backupMd5_"+processName, Context.MODE_PRIVATE);
-                SharedPreferences changeMd5Prefs = context.getSharedPreferences("changeMd5_"+processName, Context.MODE_PRIVATE);
-                SharedPreferences.Editor backupMd5Editor = backupMd5Prefs.edit();
-                SharedPreferences.Editor changeMd5Editor = changeMd5Prefs.edit();
+                String fileNamePreMix = processName+"_version_";
+                File changeMd5File = new File(strCurrentPath+"/shared_prefs/"+fileNamePreMix+version+".xml");
+                File backupMd5File = new File(strCurrentPath+"/shared_prefs/"+fileNamePreMix+0+".xml");
                 if(isFileExistOnCloud("/"+processName)) {
+                    String cloudBackupPreMix = "/"+processName+"/version_0";//"/processname/version_0";
+                    String cloudChangePreMix = "/"+processName+"/version_"+version;
                     //在云端进行过备份
-                    if (!changeMd5File.exists()) {
+                    if (!changeMd5File.exists()||!backupMd5File.exists()) {
                         //本地不存在changeMd5说明未进行过备份
-                        backupMd5Editor.commit();
-                        changeMd5Editor.commit();
+//                        backupMd5Editor.commit();
+//                        changeMd5Editor.commit();
                         //本地不存在说明还未进行备份,从服务端下载上次备份到云端的文件覆盖本地
-                        downloadFile(changeMd5File.getAbsolutePath(), "/"+processName+"/changeMd5_"+processName+".xml");
-                        downloadFile(changeMd5File.getAbsolutePath(), "/"+processName+"/backupMd5_"+processName+".xml");
+                        downloadFile(changeMd5File.getAbsolutePath(), cloudChangePreMix+"/"+processName+"_version_"+version+".xml");
+                        downloadFile(backupMd5File.getAbsolutePath(), cloudBackupPreMix+"/"+processName+"_version_"+0+".xml");
                     }
-                    Map<String, ?> map = changeMd5Prefs.getAll();
-                    List<String> srcZipFilePath = new ArrayList<String>();
-                    List<String> desZipFilePath = new ArrayList<String>();
-                    for (String key : map.keySet()) {
-                        String zipName = key + ".gz";
-                        String strCloudPath = "/"+processName+key+".gz";
-                        String unZipName = key;
-                        File parentFile = new File(strCurrentPath + unZipName).getParentFile();
-                        parentFile.mkdirs();
-                        if (isFileExistOnCloud(strCloudPath)) {
-                            downloadFile(strCurrentPath + zipName, strCloudPath);//将云端的文件存入当前app中
-                            srcZipFilePath.add(strCurrentPath + zipName);//记录暂时的压缩包路径和在微信目录中的路径
-                            desZipFilePath.add(unZipName);
-                            System.out.println(zipName + " is downloaded");
-                        }
-                        else {
-                            List<String> splitList = FileSM.getSplitListFromCloud(strCloudPath);//列表存放在云端上的路径
-                            if(splitList.size()==0){
-                                //说明云端不存在该文件且不是大文件，文件可能丢失
-                                continue;
-                            }
-                            if (FileSM.isCompleteSplitNum(splitList)) {//判断分割后的文件是否完整
-                                for (int i = 0; i < splitList.size(); i++) {
-                                    String splitZipName = splitList.get(i);//云端路径/com.tencent.mm
-                                    String localPath = splitZipName.substring(processName.length()+1);
-                                    downloadFile(strCurrentPath + localPath, splitZipName);
-                                    System.out.println(splitZipName + " is downloaded");
-                                }
-                                FileSM.merge(strCurrentPath + zipName, splitList);
-                            } else {
-                                Toast.makeText(SecondActivity.this, "合并时文件序号丢失", Toast.LENGTH_SHORT).show();
-                            }
-                        }
+                    SharedPreferences backupMd5Prefs = context.getSharedPreferences(fileNamePreMix+"0",Context.MODE_PRIVATE);
+                    recoveryFromList(backupMd5Prefs.getAll(),cloudBackupPreMix);
+                    if(version!=0) {
+                        SharedPreferences changeMd5Prefs = context.getSharedPreferences(fileNamePreMix+version,Context.MODE_PRIVATE);
+                        recoveryFromList(changeMd5Prefs.getAll(), cloudChangePreMix);
                     }
-                    System.out.println("----解压到用户应用目录----");
-                    FileRooter.cmdUnzips(srcZipFilePath, desZipFilePath);
                     sendMsg(MSG_COMPLETE_SYNC);
                 }
                 else{
@@ -395,18 +439,56 @@ public class SecondActivity extends AppCompatActivity {
             }
         }).start();
     }
+    void recoveryFromList(Map<String,?>map,String strCloudPreMix){
+        List<String> srcZipFilePath = new ArrayList<String>();
+        List<String> desZipFilePath = new ArrayList<String>();
+        for (String key : map.keySet()) {
+            String zipName = key + ".gz";
+            String strCloudPath = strCloudPreMix+key+".gz";
+            String unZipName = key;
+            File parentFile = new File(strCurrentPath + unZipName).getParentFile();
+            parentFile.mkdirs();
+            if (isFileExistOnCloud(strCloudPath)) {
+                downloadFile(strCurrentPath + zipName, strCloudPath);//将云端的文件存入当前app中
+                srcZipFilePath.add(strCurrentPath + zipName);//记录暂时的压缩包路径和在微信目录中的路径
+                desZipFilePath.add(unZipName);
+                System.out.println(zipName + " is downloaded");
+            }
+            else {
+                List<String> splitList = FileSM.getSplitListFromCloud(strCloudPath);//列表存放在云端上的路径
+                if(splitList.size()==0){
+                    //说明云端不存在该文件且不是大文件，文件可能丢失
+                    continue;
+                }
+                if (FileSM.isCompleteSplitNum(splitList)) {//判断分割后的文件是否完整
+                    for (int i = 0; i < splitList.size(); i++) {
+                        String splitZipName = splitList.get(i);//云端路径/com.tencent.mm
+                        String localPath = splitZipName.substring(strCloudPreMix.length());//获取云端路径中的本地路径
+                        downloadFile(strCurrentPath + localPath, splitZipName);
+                        System.out.println(splitZipName + " is downloaded");
+                    }
+                    FileSM.merge(strCurrentPath + zipName, splitList);
+                } else {
+                    Toast.makeText(SecondActivity.this, "合并时文件序号丢失", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+        System.out.println("----解压到用户应用目录----");
+        FileRooter.cmdUnzips(srcZipFilePath, desZipFilePath);
+    }
     /**
      * 每次备份文件后将期间以及以前发生变化的文件都存入sharedPrefs并将xml上传至云平台
      */
     void syncSharedPrefsToCloud(String fileName){
         //将期间发生变化的ChangeMd5文件传到云平台供以后的同步所用,在云端根目录下
+        String cloudPremix = "/"+SecondActivity.processName+"/version_"+SecondActivity.version;
         String strSharedPrefsPath = strCurrentPath + "/shared_prefs/"+fileName;//在本地的目录
-        String strCloudPath = "/"+processName+"/"+fileName;
+        String strCloudPath = cloudPremix+"/"+fileName;
         if(isFileExistOnCloud(strCloudPath)){
-            uploadFile("update", strSharedPrefsPath, fileName, "/"+processName+"/");
+            uploadFile("update", strSharedPrefsPath, fileName, cloudPremix+"/");
         }
         else{
-            uploadFile("upload", strSharedPrefsPath, fileName, "/"+processName+"/");
+            uploadFile("upload", strSharedPrefsPath, fileName, cloudPremix+"/");
         }
     }
     /**
@@ -607,6 +689,14 @@ public class SecondActivity extends AppCompatActivity {
                     btnRecovery.setEnabled(true);
                     btnRecovery.setText("同步");
                     break;
+                case MSG_VERSION_NUM:
+                    if(version>=0){
+                        System.out.println("云端最近版本:" + version);
+                        createRecoverVersionDialg();
+                    }
+                    else{
+                        Toast.makeText(SecondActivity.this,"云端不存在备份版本，请先备份",Toast.LENGTH_SHORT).show();
+                    }
             }
         }
     };

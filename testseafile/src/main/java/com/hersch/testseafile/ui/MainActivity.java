@@ -39,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
         findView();
     }
     void findView() {
-        tvFileScanner = (TextView)findViewById(R.id.tvFileScanner);
+        //tvFileScanner = (TextView)findViewById(R.id.tvFileScanner);
         editTextIpAddress = (EditText) findViewById(R.id.editTextIpAdress);
         editTextUserName = (EditText) findViewById(R.id.editTextUserName);
         editTextPassword = (EditText) findViewById(R.id.editTextPassword);
