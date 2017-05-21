@@ -141,24 +141,42 @@ public class SecondActivity extends AppCompatActivity {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        processName = "org.mozilla.firefox";
-                        stateNum++;
-                        chmodFileList.clear();
-                        chmodIntList.clear();
-                        SharedPreferences sharedPreferences = getSharedPreferences("state" + stateNum, Context.MODE_PRIVATE);
-                        SharedPreferences.Editor editor = sharedPreferences.edit();
-                        editor.commit();
-                        List<String> preList = ConfigList.getInitDirList("local", "system");
-                        FileRooter.chmodPreDirPath(preList);
-                        List<String> backupList = ConfigList.getList("system");
-                        testFileNum = 0;
-                        for (String s : backupList) {
-                            traverseFile(s, stateNum);
+                        SharedPreferences sharedPrefsFirst = getSharedPreferences("state1",Context.MODE_PRIVATE);
+                        SharedPreferences.Editor editorFirst = sharedPrefsFirst.edit();
+                        for(int i=2;i<=4;i++){
+                            System.out.println("state:"+i);
+                            SharedPreferences sharedPreferences = getSharedPreferences("state" + i, Context.MODE_PRIVATE);
+                            Map<String,?>map = sharedPreferences.getAll();
+                            for(String s:map.keySet()){
+                                SharedPreferences sharedPrefBackup = getSharedPreferences("state"+i+"backup",Context.MODE_PRIVATE);
+                                SharedPreferences.Editor editorBackup = sharedPrefBackup.edit();
+                                String tempStr = sharedPrefsFirst.getString(s,null);
+                                if(tempStr==null){
+                                    System.out.println(s);
+                                    editorBackup.putString(s,"");
+                                    editorBackup.commit();
+                                }
+                            }
                         }
-                        FileRooter.rollBackChmodFiles(chmodIntList, chmodFileList);
-                        System.out.println("测试完成");
-                        System.out.println("Directorys: " + testDirNum);
-                        System.out.println("Files: " + testFileNum);
+                        System.out.println("End");
+//                        processName = "org.mozilla.firefox";
+//                        stateNum++;
+//                        chmodFileList.clear();
+//                        chmodIntList.clear();
+//                        SharedPreferences sharedPreferences = getSharedPreferences("state" + stateNum, Context.MODE_PRIVATE);
+//                        SharedPreferences.Editor editor = sharedPreferences.edit();
+//                        editor.commit();
+//                        List<String> preList = ConfigList.getInitDirList("local", "system");
+//                        FileRooter.chmodPreDirPath(preList);
+//                        List<String> backupList = ConfigList.getList("system");
+//                        testFileNum = 0;
+//                        for (String s : backupList) {
+//                            traverseFile(s, stateNum);
+//                        }
+//                        FileRooter.rollBackChmodFiles(chmodIntList, chmodFileList);
+//                        System.out.println("测试完成");
+//                        System.out.println("Directorys: " + testDirNum);
+//                        System.out.println("Files: " + testFileNum);
                     }
                 }).start();
             }
@@ -245,26 +263,6 @@ public class SecondActivity extends AppCompatActivity {
             currentEditor.commit();
         }
     }
-    void initSpinner() {
-//        List<String>list = ConfigList.getAppList();
-//        Spinner sp = (Spinner) findViewById(R.id.spinner);
-//        final ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, list);
-//        sp.setAdapter(adapter);
-//        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-//        sp.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-//            @Override
-//            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-//                ArrayAdapter<String> arrayAdapter = (ArrayAdapter<String>) parent.getAdapter();
-//                String content = arrayAdapter.getItem(position);
-//                processName = content;
-//            }
-//
-//            @Override
-//            public void onNothingSelected(AdapterView<?> parent) {
-//            }
-//        });
-    }
-
     //退出微信提示框
     void createBackUpDialg(){
         AlertDialog.Builder builder = new AlertDialog.Builder(SecondActivity.this);

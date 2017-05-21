@@ -15,9 +15,10 @@ import java.util.regex.Pattern;
  */
 public class ConfigList {
     public static String[] getAppList(){
-        String[] apps = new String[2];
+        String[] apps = new String[3];
         apps[0] = "com.tencent.mm";
         apps[1] = "com.tencent.mobileqq";
+        apps[2] ="org.mozilla.firefox";
         return apps;
     }
     /**
@@ -28,15 +29,23 @@ public class ConfigList {
     public static List<String> getInitDirList(String kind,String packageName){
         List<String> s = new ArrayList<>();
         switch (packageName) {
+            case"org.mozilla.firefox":
+                s.add("/data");
+                s.add("/data/data");
+                s.add("/data/system");
+                s.add("/data/system/sync");
+                s.add("/data/system/users");
+                s.add("/data/system/users/0");
+                s.add("/data/data/org.mozilla.firefox");
+                s.add("/data/data/org.mozilla.firefox/files");
+                s.add("/data/data/org.mozilla.firefox/shared_prefs");
+                //s.add("/data/data/org.mozilla.firefox/cache");
+                s.add("/data/data/org.mozilla.firefox/databases");
+                break;
             case "system":
                 s.add("/data");
                 s.add("/data/data");
                 s.add("/data/user");
-                //s.add("/data/data/"+SecondActivity.processName);
-                //s.add("/data/data/com.android.settings");
-                //s.add("/data/data/com.android.settings/app_webview");
-                //s.add("/data/data/com.tencent.mobileqq/files");
-                //s.add("/data/data/com.tencent.mobileqq/files/nearby_gray_tips_configs");
                 s.add("/data/media");
                 s.add("/data/media/0");
                 s.add("/data/system");
@@ -104,11 +113,23 @@ public class ConfigList {
     public static List<String> getList(final String packageName){
         List<String> s = new ArrayList<>();
         switch (packageName) {
+            case "org.mozilla.firefox":
+                s.add("/data/data/org.mozilla.firefox/files");
+                s.add("/data/data/org.mozilla.firefox/shared_prefs");
+                //s.add("/data/data/org.mozilla.firefox/cache");
+                s.add("/data/data/org.mozilla.firefox/databases");
+                s.add("/data/system/sync");
+                s.add("/data/system/users/0");
+                s.add("/data/system/packages.xml");
+                s.add("/data/system/packages.list");
+                s.add("/data/system/appops.xml");
+                break;
             case "com.tencent.mm":
                 s.add("/data/data/com.tencent.mm/MicroMsg");
                 s.add("/data/data/com.tencent.mm/shared_prefs");
                 s.add("/data/data/com.tencent.mm/files/kvcomm");
                 s.add("/data/backup/fb-schedule");
+                s.add("/data/system/appops.xml");
                 s.add("/data/system/packages.xml");
                 s.add("/data/system/packages.list");
                 s.add("/data/system/sync");
