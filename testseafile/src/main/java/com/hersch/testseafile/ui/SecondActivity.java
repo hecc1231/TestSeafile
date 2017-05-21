@@ -24,6 +24,10 @@ import com.hersch.testseafile.files.FileSM;
 import com.hersch.testseafile.net.HttpRequest;
 
 import java.io.File;
+import java.io.UnsupportedEncodingException;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -141,24 +145,6 @@ public class SecondActivity extends AppCompatActivity {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        SharedPreferences sharedPrefsFirst = getSharedPreferences("state1",Context.MODE_PRIVATE);
-                        SharedPreferences.Editor editorFirst = sharedPrefsFirst.edit();
-                        for(int i=2;i<=4;i++){
-                            System.out.println("state:"+i);
-                            SharedPreferences sharedPreferences = getSharedPreferences("state" + i, Context.MODE_PRIVATE);
-                            Map<String,?>map = sharedPreferences.getAll();
-                            for(String s:map.keySet()){
-                                SharedPreferences sharedPrefBackup = getSharedPreferences("state"+i+"backup",Context.MODE_PRIVATE);
-                                SharedPreferences.Editor editorBackup = sharedPrefBackup.edit();
-                                String tempStr = sharedPrefsFirst.getString(s,null);
-                                if(tempStr==null){
-                                    System.out.println(s);
-                                    editorBackup.putString(s,"");
-                                    editorBackup.commit();
-                                }
-                            }
-                        }
-                        System.out.println("End");
 //                        processName = "org.mozilla.firefox";
 //                        stateNum++;
 //                        chmodFileList.clear();
@@ -374,7 +360,10 @@ public class SecondActivity extends AppCompatActivity {
                 initPreDirOnCloud();//在云端创建父级目录如/data/data/com.tencent.mm之前的/data文件和/data/data
                 List<String>listTraverseFile = ConfigList.getList(processName);//获取需要遍历的路径
                 List<String>initDirList = ConfigList.getInitDirList("local",processName);
-                FileRooter.chmodPreDirPath(initDirList);//对父级目录进行chmod以便可以正常访问子文件
+                for(int i=0;i<listTraverseFile.size();i++){
+                    initDirList.add(listTraverseFile.get(i));
+                }
+                FileRooter.getAccessFromFiles(initDirList);//对父级目录进行chmod以便可以正常访问子文件
                 for (String s : listTraverseFile) {
                     FileBackup.traverseFileCy(SecondActivity.this, s, myHandler);
                 }

@@ -6,12 +6,14 @@ package com.hersch.testseafile.net;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLDecoder;
@@ -36,6 +38,8 @@ public class HttpRequest {
         try {
             String urlNameString = url + "?" + param;
             urlNameString = checkParam(urlNameString);
+            //urlNameString = URLEncoder.encode(urlNameString, "utf-8");
+            //urlNameString = checkParam(urlNameString);
             URL realUrl = new URL(urlNameString);
             URLConnection connection = realUrl.openConnection();
             connection.setRequestProperty("accept", "application/json, text/javascript, */*; q=0.01");
@@ -55,11 +59,9 @@ public class HttpRequest {
             while ((line = in.readLine()) != null) {
                 result += line;
             }
-        } catch (Exception e) {
-            System.out.println("发送GET请求出现异常！" + e);
-            e.printStackTrace();
-        }
-        finally {
+        }catch (Exception e){
+            System.out.println("不存在版本");
+        } finally {
             try {
                 if (in != null) {
                     in.close();
@@ -76,7 +78,8 @@ public class HttpRequest {
         BufferedReader in = null;
         try {
             String urlNameString = url + "?" + param;
-            checkParam(urlNameString);
+            urlNameString = checkParam(urlNameString);
+            //urlNameString = URLEncoder.encode(urlNameString,"utf-8");
             URL realUrl = new URL(urlNameString);
             URLConnection connection = realUrl.openConnection();
             connection.setRequestProperty("accept", "application/json, text/javascript, */*; q=0.01");
@@ -91,7 +94,7 @@ public class HttpRequest {
             connection.setRequestProperty("Host", strIpAddress + ":8000");
             connection.connect();
             String length = connection.getHeaderField("Content-Length");
-            System.out.println("Content-Length:"+length);
+            System.out.println("Content-Length:" + length);
             int totalLen = Integer.valueOf(length);
             m_binArray = new byte[totalLen];
             BufferedInputStream input =new BufferedInputStream(connection.getInputStream());
@@ -308,14 +311,14 @@ public class HttpRequest {
         String result = "";
         param = checkParam(param);
         url = checkParam(url);
-        System.out.println("************** URL:" +url);
         try {
+            System.out.println("************** URL:" + url);
             URL realUrl = new URL(url);
             HttpURLConnection connection = (HttpURLConnection)realUrl.openConnection();
-            connection.setRequestProperty("Host", strIpAddress+":8000");
+            connection.setRequestProperty("Host", strIpAddress + ":8000");
             connection.setRequestProperty("connection", "Keep-Alive");
             connection.setRequestProperty("X-Requested-With", "XMLHttpRequest");
-            connection.setRequestProperty("Content-Length",String.valueOf(param.length()) );
+            connection.setRequestProperty("Content-Length", String.valueOf(param.length()));
             connection.setInstanceFollowRedirects(false);
             connection.setRequestProperty("X-CSRFToken", strToken);
             connection.setRequestProperty("Content-Type", strContentType);
@@ -355,80 +358,25 @@ public class HttpRequest {
 
         return result;
     }
-    private static String checkParam(String param){
-        StringBuilder sb = new StringBuilder(param);
-        String tempStr = sb.toString();
-        int place=0;
-        while((place=tempStr.lastIndexOf("%"))!=-1){
-            sb.insert(place+1,"25");
-            tempStr = sb.substring(0,place);
-        }
-        return sb.toString();
-    }
-    public static String sendOptions(String url, String param) {
-        String result = "";
-        BufferedReader in = null;
-        try {
-            String urlNameString = url;
-            URL realUrl = new URL(urlNameString);
-            HttpURLConnection connection = (HttpURLConnection)realUrl.openConnection();
-            connection.setRequestProperty("accept", "application/json, text/javascript, */*; q=0.01");
-            connection.setRequestProperty("X-Access-Control-Request-Method-With", "POST");
-            connection.setRequestProperty("Access-Control-Request-Headers", "accept, content-type");
-            connection.setRequestProperty("connection", "Keep-Alive");
-            connection.setRequestProperty("user-agent",
-                    "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.85 Safari/537.36");
-            connection.setRequestProperty("Referer", "http://"+strIpAddress+":8000/");
-            connection.setRequestProperty("Origin", "http://"+strIpAddress+":8000");
-            connection.setRequestProperty("Host", strIpAddress+":8082");
-            connection.setRequestProperty("Accept-Encoding", "gzip, deflate, sdch");
-            connection.setRequestProperty("Accept-Language", "zh-CN,zh;q=0.8");
-            connection.setRequestMethod("OPTIONS");
-            connection.connect();
-            Map<String, List<String>> map = connection.getHeaderFields();
-            for (String key : map.keySet()) {
-                System.out.println(key + "--->" + map.get(key));
-            }
-            in = new BufferedReader(new InputStreamReader(
-                    connection.getInputStream()));
-            String line;
-            while ((line = in.readLine()) != null) {
-                result += line;
-            }
-        } catch (Exception e) {
-            System.out.println("发送GET请求出现异常！" + e);
-            e.printStackTrace();
-        }
-        finally {
-            try {
-                if (in != null) {
-                    in.close();
-                }
-            } catch (Exception e2) {
-                e2.printStackTrace();
-            }
-        }
-        return result;
-    }
-
     public static String uploadFile(String url, byte[] param, String strCookie) {
-        url = checkParam(url);
         PrintWriter out = null;
         BufferedReader in = null;
         String result = "";
-        System.out.println("************** URL:" +url);
         try {
+            //url = URLEncoder.encode(url,"utf-8");
+            url = checkParam(url);
+            System.out.println("************** URL:" +url);
             URL realUrl = new URL(url);
             URLConnection connection = realUrl.openConnection();
             connection.setRequestProperty("Accept", "application/json, text/javascript, */*; q=0.01");
             connection.setRequestProperty("Connection", "Keep-Alive");
             connection.setRequestProperty("Content-Length", String.valueOf(param.length));
            //connection.setRequestProperty("Cookie", "sessionid=ys8oujbkzs1t0ax3on31eiffj1p3128t; csrftoken=W7kbDde9L0o5IlCOTUSrMZh5oBQLSHte");
-            connection.setRequestProperty("Cookie",strCookie);
+            connection.setRequestProperty("Cookie", strCookie);
             connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=----WebKitFormBoundaryWwA1f0fjjPetVzQa");
             connection.setRequestProperty("Referer", "http://"+strIpAddress+":8000/");
             connection.setRequestProperty("Origin", "http://"+strIpAddress+":8000");
-            connection.setRequestProperty("Host", strIpAddress+":8082");
+            connection.setRequestProperty("Host", strIpAddress + ":8082");
             connection.setRequestProperty("Accept-Encoding", "gzip, deflate, sdch");
             connection.setRequestProperty("Accept-Language", "zh-CN,zh;q=0.8");
             connection.setDoOutput(true);
@@ -461,6 +409,11 @@ public class HttpRequest {
             }
         }
         return result;
+    }
+    static String checkParam(String param){
+        param = param.replace("%","%25");
+        param = param.replace(" ","%20");
+        return param;
     }
 }
 

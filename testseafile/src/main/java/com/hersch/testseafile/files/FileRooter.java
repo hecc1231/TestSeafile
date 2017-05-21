@@ -13,6 +13,7 @@ import org.apache.commons.lang.StringEscapeUtils;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -144,7 +145,48 @@ public class FileRooter {
             }
         }
     }
-
+    /**
+     * 返回每个文件夹的大小
+     * @param files
+     */
+    public static void getAccessFromFiles(List<String>files){
+        List<String>s = new ArrayList<>();
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder("su");
+            processBuilder.redirectErrorStream(true);
+            process = processBuilder.start();
+            dataOutputStream = new DataOutputStream(process.getOutputStream());
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            for(int i=0;i<files.size();i++) {
+                String strFilePath = files.get(i);
+                strFilePath = escapeString(strFilePath);
+                dataOutputStream.writeBytes("ls -l -d " + strFilePath + "\n");
+                String str = bufferedReader.readLine();
+                if(str.contains("No such file")){
+                    continue;
+                }
+                int accessNum = sumChmodAccess(str);
+                SecondActivity.chmodIntList.add(accessNum);
+                SecondActivity.chmodFileList.add(strFilePath);
+                System.out.println(files.get(i)+"权限:"+accessNum);
+                dataOutputStream.writeBytes("chmod 777 "+strFilePath+"\n");
+            }
+            dataOutputStream.writeBytes("exit\n");
+            dataOutputStream.flush();
+            process.waitFor();
+        } catch (Exception e){
+        }finally {
+            try {
+                if(dataOutputStream!=null){
+                    dataOutputStream.close();
+                }
+                process.destroy();
+                System.out.println("获取权限成功");
+            }catch (IOException e){
+                System.out.println("获取权限失败");
+            }
+        }
+    }
     /**
      * chmod /data/data/com.tencent.mm 需要把之前的/data和/data/data都chmod
      * @param files
@@ -214,20 +256,20 @@ public class FileRooter {
     }
     public static int getVersionFromCloud(String strParentPath) {
         //获取云端分割文件的个数
-        String strFile = HttpRequest.sendGet("http://" + HttpRequest.strIpAddress
-                        + ":8000/ajax/lib/" + MainActivity.strRootId + "/dir/",
-                "p=" + strParentPath + "&thumbnail_size=48&&_=14815507370953",
-                MainActivity.strCookie);
-        String regEx ="version_[0-9]+";
-        Pattern pattern = Pattern.compile(regEx);
-        Matcher matcher = pattern.matcher(strFile);
-        int maxNo=-1;
-        while (matcher.find()) {
-            String s = matcher.group();
-            int i1 = s.lastIndexOf("_");
-            int no = Integer.parseInt(s.substring(i1+1));
-            maxNo = maxNo<no?no:maxNo;
-        }
+            String strFile = HttpRequest.sendGet("http://" + HttpRequest.strIpAddress
+                            + ":8000/ajax/lib/" + MainActivity.strRootId + "/dir/",
+                    "p=" + strParentPath + "&thumbnail_size=48&&_=14815507370953",
+                    MainActivity.strCookie);
+            String regEx = "version_[0-9]+";
+            Pattern pattern = Pattern.compile(regEx);
+            Matcher matcher = pattern.matcher(strFile);
+            int maxNo = -1;
+            while (matcher.find()) {
+                String s = matcher.group();
+                int i1 = s.lastIndexOf("_");
+                int no = Integer.parseInt(s.substring(i1 + 1));
+                maxNo = maxNo < no ? no : maxNo;
+            }
         return maxNo;
     }
     public static void createDir(List<String>dirList) {
@@ -283,12 +325,21 @@ public class FileRooter {
                 BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
                 String str = bufferedReader.readLine();
                 if(str.contains("No such file")){
-                    continue;
-                    //File currentFile = new File(desFilePath);
-                    //String parentPath=  currentFile.getParent();
-                    //dataOutputStream.writeBytes("mkdir -p "+parentPath+"\n");
+                    //continue;
+                    int i1 = desFilePath.lastIndexOf("/");
+                    String parentPath = desFilePath.substring(0,i1);
+                    dataOutputStream.writeBytes("mkdir -p "+parentPath+"\n");
+                    String temp = desFilePath;
+                    do{
+                        if(i1==0){
+                            break;
+                        }
+                        temp = temp.substring(0,i1);
+                        dataOutputStream.writeBytes("chmod 777 "+temp+"\n");
+                    }while((i1=temp.lastIndexOf("/"))!=-1);
                 }
                 dataOutputStream.writeBytes("gzip -c -d " + srcFilePath + ">" + desFilePath + "\n");
+                dataOutputStream.writeBytes("chmod 777 "+desFilePath + "\n");
                 System.out.println(srcFilePath + "---- unzip to ----" + desFilePath);
             }
             dataOutputStream.writeBytes("exit\n");
@@ -326,51 +377,8 @@ public class FileRooter {
         }
         return sum;
     }
-
-    /**
-     * 返回每个文件夹的大小
-     * @param files
-     */
-    public static void getAccessFromFiles(List<String>files){
-        List<String>s = new ArrayList<>();
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder("su");
-            process = processBuilder.start();
-            processBuilder.redirectErrorStream(true);
-            dataOutputStream = new DataOutputStream(process.getOutputStream());
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            for(int i=0;i<files.size();i++) {
-                String strFilePath = files.get(i);
-                strFilePath = escapeString(strFilePath);
-                dataOutputStream.writeBytes("ls -l -d " + strFilePath + "\n");
-                String str = bufferedReader.readLine();
-                if(str.contains("No such file")){
-                    continue;
-                }
-                int accessNum = sumChmodAccess(str);
-                SecondActivity.chmodIntList.add(accessNum);
-                SecondActivity.chmodFileList.add(strFilePath);
-                System.out.println(files.get(i)+"权限:"+accessNum);
-                dataOutputStream.writeBytes("chmod 777 "+strFilePath+"\n");
-            }
-            dataOutputStream.writeBytes("exit\n");
-            dataOutputStream.flush();
-            process.waitFor();
-        } catch (Exception e){
-        }finally {
-            try {
-                if(dataOutputStream!=null){
-                    dataOutputStream.close();
-                }
-                process.destroy();
-                System.out.println("获取权限成功");
-            }catch (IOException e){
-                System.out.println("获取权限失败");
-            }
-        }
-    }
     static String escapeString(String s){
-        s = s.replaceAll("\\ ", "\\\\\\ ");//前一个参数为正则表达式格式"\\ "表示空格
+        s = s.replace(" ", "\\ ");
         s = s.replaceAll("\\$", "\\\\\\$");//正则表达式表示\$是\\\$再字符转义三个斜杠
         return s;
     }

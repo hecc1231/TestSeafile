@@ -3,6 +3,7 @@ package com.hersch.testseafile.files;
 import com.hersch.testseafile.ui.SecondActivity;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FilenameFilter;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,15 +33,9 @@ public class ConfigList {
             case"org.mozilla.firefox":
                 s.add("/data");
                 s.add("/data/data");
-                s.add("/data/system");
-                s.add("/data/system/sync");
-                s.add("/data/system/users");
-                s.add("/data/system/users/0");
                 s.add("/data/data/org.mozilla.firefox");
                 s.add("/data/data/org.mozilla.firefox/files");
-                s.add("/data/data/org.mozilla.firefox/shared_prefs");
-                //s.add("/data/data/org.mozilla.firefox/cache");
-                s.add("/data/data/org.mozilla.firefox/databases");
+                s.add("/data/data/org.mozilla.firefox/files/mozilla");
                 break;
             case "system":
                 s.add("/data");
@@ -56,9 +51,7 @@ public class ConfigList {
             case "com.tencent.mm":
                 s.add("/data");
                 s.add("/data/data");
-                s.add("/data/dalvik-cache");
                 s.add("/data/system");
-                s.add("/data/backup");
                 s.add("/data/system/sync");
                 s.add("/data/system/users");
                 s.add("/data/system/users/0");
@@ -67,13 +60,6 @@ public class ConfigList {
                 s.add("/data/data/com.tencent.mm/shared_prefs");
                 s.add("/data/data/com.tencent.mm/files");
                 s.add("/data/data/com.tencent.mm/files/kvcomm");
-                s.add("/data/data/com.android.providers.media");
-                s.add("/data/data/com.android.providers.media/databases");
-                s.add("/data/data/com.android.providers.contacts");
-                s.add("/data/media");
-                s.add("/data/media/0");
-                s.add("/data/media/0/tencent");
-                s.add("/data/media/0/tencent/MicroMsg");
                 break;
             case "com.tencent.mobileqq":
                 s.add("/data");
@@ -114,48 +100,21 @@ public class ConfigList {
         List<String> s = new ArrayList<>();
         switch (packageName) {
             case "org.mozilla.firefox":
-                s.add("/data/data/org.mozilla.firefox/files");
-                s.add("/data/data/org.mozilla.firefox/shared_prefs");
-                //s.add("/data/data/org.mozilla.firefox/cache");
-                s.add("/data/data/org.mozilla.firefox/databases");
-                s.add("/data/system/sync");
-                s.add("/data/system/users/0");
-                s.add("/data/system/packages.xml");
-                s.add("/data/system/packages.list");
-                s.add("/data/system/appops.xml");
+                s = addSubFileofFilesInFox(s, "/data/data/org.mozilla.firefox/files/mozilla");//添加mozilla下的特定文件
                 break;
             case "com.tencent.mm":
                 s.add("/data/data/com.tencent.mm/MicroMsg");
                 s.add("/data/data/com.tencent.mm/shared_prefs");
                 s.add("/data/data/com.tencent.mm/files/kvcomm");
-                s.add("/data/backup/fb-schedule");
-                s.add("/data/system/appops.xml");
-                s.add("/data/system/packages.xml");
-                s.add("/data/system/packages.list");
-                s.add("/data/system/sync");
-                s.add("/data/system/users/0");
-                s.add("/data/data/com.android.providers.media/databases/external.db");
-                s.add("/data/data/com.android.providers.contacts");
-                //s.add("/data/media/0/tencent/MicroMsg");
-                s.add("/data/media/0/tencent/vusericon");
-                s.add("/data/media/0/tencent/CDNTemp");
+                //s.add("/data/system/sync");
+                //s.add("/data/system/users/0");
                 break;
             case "com.tencent.mobileqq":
-                //s.add("/data/system");
                 s.add("/data/data/com.tencent.mobileqq/databases");
                 s.add("/data/data/com.tencent.mobileqq/shared_prefs");
-                //s.add("/data/data/com.tencent.mobileqq/cache");
-                //s.add("/data/data/com.tencent.mobileqq/app_install_plugin");
-                //s.add("/data/data/com.tencent.mobileqq/txlib");
-                //s.add("/data/data/com.tencent.mobileqq/files");
-                //s.add("/data/data/com.tencent.mobileqq/app_systemface");
                 s.add("/data/data/com.tencent.mobileqq/files/gm_history");
                 //s.add("/data/data/com.tencent.mobileqq/files/flow");
                 s.add("/data/data/com.tencent.mobileqq/files/ConfigStore2.dat");
-//                s.add("/data/media/0/tencent/MobileQQ/diskcache");
-//                s.add("/data/media/0/tencent/MobileQQ/shortvideo");
-                //s.add("/data/media/0/tencent/MobileQQ/data");
-                //s = addUserDir(s,"/data/media/0/tecent/MobileQQ");
                 break;
             case "system":
                 s.add("/data/system");
@@ -224,6 +183,36 @@ public class ConfigList {
                 list.add(f.getAbsolutePath());
             }
         }
+        return list;
+    }
+    static List<String>addSubFileofFilesInFox(List<String>list,String filePath){
+        SecondActivity.chmodFileList.clear();
+        SecondActivity.chmodIntList.clear();
+        List<String>prePath = new ArrayList<>();
+        prePath.add("/data");
+        prePath.add("/data/data");
+        prePath.add("/data/data/org.mozilla.firefox");
+        prePath.add("/data/data/org.mozilla.firefox/files");
+        prePath.add("/data/data/org.mozilla.firefox/files/mozilla");
+        FileRooter.getAccessFromFiles(prePath);
+        File file = new File(filePath);
+        File[] files = file.listFiles();
+        String rexString = ".*\\.default";
+        if(file.length()!=0) {
+            for (File f : files) {
+                if (f.getName().matches(rexString) || f.getName().equals("profiles.ini")) {
+                    list.add(f.getAbsolutePath());
+                }
+                if(f.isDirectory()){
+                    //云端创建该文件夹
+                    FileBackup.createDirectory("/"+SecondActivity.processName+"/version_"+
+                            SecondActivity.version+f.getAbsolutePath());
+                }
+            }
+        }
+        FileRooter.rollBackChmodFiles(SecondActivity.chmodIntList,SecondActivity.chmodFileList);
+        SecondActivity.chmodFileList.clear();
+        SecondActivity.chmodIntList.clear();
         return list;
     }
 }

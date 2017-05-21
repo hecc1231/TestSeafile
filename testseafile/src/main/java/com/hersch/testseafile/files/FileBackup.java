@@ -19,29 +19,26 @@ public class FileBackup {
         String cloudPremix = "/"+SecondActivity.processName+"/version_"+SecondActivity.version;
         List<String> listFile = new ArrayList<>();
         List<String> listDir = new ArrayList<>();
-        List<String> requestList = ConfigList.getList(SecondActivity.processName);
+        //List<String> requestList = ConfigList.getList(SecondActivity.processName);
         File file = new File(strFilePath);
-        if(!file.exists()||!file.canRead()){
-            return;
-        }
         if(file.isDirectory()) {
             File[] files = file.listFiles();
             for (int j = 0; j < files.length; j++) {
                 if (files[j].isDirectory()) {
-                    if (isValid(files[j].getAbsolutePath(), requestList)) {
+                    //if (isValid(files[j].getAbsolutePath(), requestList)) {
                         listDir.add(files[j].getAbsolutePath());
-                    }
+                    //}
                 } else {
-                    if (isValid(files[j].getAbsolutePath(), requestList)) {
+                    //if (isValid(files[j].getAbsolutePath(), requestList)) {
                         listFile.add(files[j].getAbsolutePath());
-                    }
+                    //}
                 }
             }
         }
         else{
-            if(isValid(file.getAbsolutePath(),requestList)){
+            //if(isValid(file.getAbsolutePath(),requestList)){
                 listFile.add(file.getAbsolutePath());
-            }
+            //}
         }
         if (listDir.size() > 0) {
             FileRooter.getAccessFromFiles(listDir);//获取当前目录下文件夹权限并将文件夹chmod为777
@@ -81,9 +78,7 @@ public class FileBackup {
             if(s.equals(strFilePath)){
                 return true;
             }
-        }
-        for(String s:initList){
-            if(strFilePath.contains(s)||s.contains(strFilePath)){
+            else if(strFilePath.contains(s)||s.contains(strFilePath)){
                 return true;
             }
         }
