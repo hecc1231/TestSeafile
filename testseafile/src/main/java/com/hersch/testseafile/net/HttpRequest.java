@@ -121,69 +121,67 @@ public class HttpRequest {
 
         return m_binArray;
     }
-
-    public static String sendGetRoot(String url, String param, String strCookie) {
-        String result = "";
-        BufferedReader in = null;
-        String strParamValue = "";
-        param = checkParam(param);
-        url = checkParam(url);
-        try {
-            String urlNameString = url;
-            URL realUrl = new URL(urlNameString);
-            URLConnection connection = realUrl.openConnection();
-            connection.setRequestProperty("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
-            connection.setRequestProperty("Cache-Control", "max-age=0");
-            connection.setRequestProperty("connection", "Keep-Alive");
-            connection.setRequestProperty("user-agent",
-                    "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.85 Safari/537.36");
-            connection.setRequestProperty("Upgrade-Insecure-Requests", "1");
-            connection.setRequestProperty("Referer", "http://"+strIpAddress+":8000/accounts/login/");
-            connection.setRequestProperty("Accept-Encoding", "gzip, deflate, sdch");
-            connection.setRequestProperty("Accept-Language", "zh-CN,zh;q=0.8");
-            connection.setRequestProperty("Cookie", strCookie);
-            connection.connect();
-            Map<String, List<String>> map = connection.getHeaderFields();
-            for (String key : map.keySet()) {
-                if(key!=null && !key.isEmpty() && key.equals(param))
-                {
-                    for(String value: map.get(key))
-                    {
-                        if(value.startsWith("sessionid"))
-                        {
-                            strParamValue += value.substring(0,value.indexOf(";")+1) + " ";
-                        }
-
-                        if(value.startsWith("csrftoken"))
-                        {
-                            strParamValue += value.substring(0,value.indexOf(";")+1);
-                        }
-                    }
-
-                }
-            }
-            in = new BufferedReader(new InputStreamReader(
-                    connection.getInputStream()));
-            String line;
-            while ((line = in.readLine()) != null) {
-                result += line;
-            }
-        } catch (Exception e) {
-            System.out.println("发送GET请求出现异常！" + e);
-            e.printStackTrace();
-        }
-        finally {
-            try {
-                if (in != null) {
-                    in.close();
-                }
-            } catch (Exception e2) {
-                e2.printStackTrace();
-            }
-        }
-        return result;
-    }
-
+//    public static String sendGetRoot(String url, String param, String strCookie) {
+//        String result = "";
+//        BufferedReader in = null;
+//        String strParamValue = "";
+//        param = checkParam(param);
+//        url = checkParam(url);
+//        try {
+//            String urlNameString = url;
+//            URL realUrl = new URL(urlNameString);
+//            URLConnection connection = realUrl.openConnection();
+//            connection.setRequestProperty("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
+//            connection.setRequestProperty("Cache-Control", "max-age=0");
+//            connection.setRequestProperty("connection", "Keep-Alive");
+//            connection.setRequestProperty("user-agent",
+//                    "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.85 Safari/537.36");
+//            connection.setRequestProperty("Upgrade-Insecure-Requests", "1");
+//            connection.setRequestProperty("Referer", "http://"+strIpAddress+":8000/accounts/login/");
+//            connection.setRequestProperty("Accept-Encoding", "gzip, deflate, sdch");
+//            connection.setRequestProperty("Accept-Language", "zh-CN,zh;q=0.8");
+//            connection.setRequestProperty("Cookie", strCookie);
+//            connection.connect();
+//            Map<String, List<String>> map = connection.getHeaderFields();
+//            for (String key : map.keySet()) {
+//                if(key!=null && !key.isEmpty() && key.equals(param))
+//                {
+//                    for(String value: map.get(key))
+//                    {
+//                        if(value.startsWith("sessionid"))
+//                        {
+//                            strParamValue += value.substring(0,value.indexOf(";")+1) + " ";
+//                        }
+//
+//                        if(value.startsWith("csrftoken"))
+//                        {
+//                            strParamValue += value.substring(0,value.indexOf(";")+1);
+//                        }
+//                    }
+//
+//                }
+//            }
+//            in = new BufferedReader(new InputStreamReader(
+//                    connection.getInputStream()));
+//            String line;
+//            while ((line = in.readLine()) != null) {
+//                result += line;
+//            }
+//        } catch (Exception e) {
+//            System.out.println("发送GET请求出现异常！" + e);
+//            e.printStackTrace();
+//        }
+//        finally {
+//            try {
+//                if (in != null) {
+//                    in.close();
+//                }
+//            } catch (Exception e2) {
+//                e2.printStackTrace();
+//            }
+//        }
+//        return result;
+//    }
     public static String sendGetHeadItem(String url, String param) {
         String result = "";
         BufferedReader in = null;
@@ -410,6 +408,12 @@ public class HttpRequest {
         }
         return result;
     }
+
+    /**
+     * 对于文件中含有转义字符需要进行转换
+     * @param param
+     * @return
+     */
     static String checkParam(String param){
         param = param.replace("%","%25");
         param = param.replace(" ","%20");

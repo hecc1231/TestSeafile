@@ -1,5 +1,7 @@
-package com.hersch.testseafile.files;
+package com.hersch.testseafile.list;
 
+import com.hersch.testseafile.files.FileBackup;
+import com.hersch.testseafile.files.FileRooter;
 import com.hersch.testseafile.ui.SecondActivity;
 
 import java.io.File;
@@ -35,18 +37,8 @@ public class ConfigList {
                 s.add("/data/data");
                 s.add("/data/data/org.mozilla.firefox");
                 s.add("/data/data/org.mozilla.firefox/files");
+                s.add("/data/data/org.mozilla.firefox/shared_prefs");
                 s.add("/data/data/org.mozilla.firefox/files/mozilla");
-                break;
-            case "system":
-                s.add("/data");
-                s.add("/data/data");
-                s.add("/data/user");
-                s.add("/data/media");
-                s.add("/data/media/0");
-                s.add("/data/system");
-                s.add("/data/app");
-                s.add("/data/backup");
-                s.add("/data/dalvik-cache");
                 break;
             case "com.tencent.mm":
                 s.add("/data");
@@ -59,21 +51,15 @@ public class ConfigList {
                 s.add("/data/data/com.tencent.mm/MicroMsg");
                 s.add("/data/data/com.tencent.mm/shared_prefs");
                 s.add("/data/data/com.tencent.mm/files");
-                s.add("/data/data/com.tencent.mm/files/kvcomm");
                 break;
             case "com.tencent.mobileqq":
                 s.add("/data");
                 s.add("/data/data");
                 s.add("/data/system");
                 s.add("/data/data/com.tencent.mobileqq");
-                s.add("/data/data/com.tencent.mobileqq/cache");
                 s.add("/data/data/com.tencent.mobileqq/databases");
                 s.add("/data/data/com.tencent.mobileqq/shared_prefs");
                 s.add("/data/data/com.tencent.mobileqq/files");
-                s.add("/data/data/com.tencent.mobileqq/files/flow");
-                //s.add("/data/data/com.tencent.mobileqq/app_install_plugin");
-                //s.add("/data/data/com.tencent.mobileqq/txlib");
-                //s.add("/data/data/com.tencent.mobileqq/app_systemface");
                 s.add("/data/data/com.tencent.mobileqq/files/gm_history");
                 s.add("/data/data/com.tencent.mobileqq/files/ConfigStore2.dat");
                 s.add("/data/media");
@@ -81,7 +67,6 @@ public class ConfigList {
                 s.add("/data/media/0/tencent");
                 s.add("/data/media/0/tencent/MobileQQ");
                 s.add("/data/media/0/tencent/MobileQQ/diskcache");
-                s.add("/data/media/0/tencent/MobileQQ/data");
                 s.add("/data/media/0/tencent/MobileQQ/shortvideo");
                 break;
         }
@@ -100,33 +85,23 @@ public class ConfigList {
         List<String> s = new ArrayList<>();
         switch (packageName) {
             case "org.mozilla.firefox":
-                s = addSubFileofFilesInFox(s, "/data/data/org.mozilla.firefox/files/mozilla");//添加mozilla下的特定文件
+                s.add("/data/data/org.mozilla.firefox/shared_prefs");//用户配置信息
+                s = addSubFileofFilesInFox(s, "/data/data/org.mozilla.firefox/files/mozilla");//添加mozilla下的用户数据文件
                 break;
             case "com.tencent.mm":
                 s.add("/data/data/com.tencent.mm/MicroMsg");
                 s.add("/data/data/com.tencent.mm/shared_prefs");
-                s.add("/data/data/com.tencent.mm/files/kvcomm");
-                //s.add("/data/system/sync");
-                //s.add("/data/system/users/0");
+                s.add("/data/data/com.tencent.mm/files");
+                s.add("/data/system/sync");
+                s.add("/data/system/users/0");
                 break;
             case "com.tencent.mobileqq":
                 s.add("/data/data/com.tencent.mobileqq/databases");
                 s.add("/data/data/com.tencent.mobileqq/shared_prefs");
                 s.add("/data/data/com.tencent.mobileqq/files/gm_history");
-                //s.add("/data/data/com.tencent.mobileqq/files/flow");
                 s.add("/data/data/com.tencent.mobileqq/files/ConfigStore2.dat");
-                break;
-            case "system":
-                s.add("/data/system");
-                s.add("/data/data");
-                //s.add("/data/user/0");
-                s.add("/data/app");
-                //s.add("/data/media/0/360Video");
-                s.add("/data/dalvik-cache");
-                s.add("/data/backup");
-                //s.add("/data/data/com.android.settings/app_webview");
-                //s.add("/data/data/com.tencent.mobileqq/files/nearby_gray_tips_configs");
-                //s.add("/data/media/"+SecondActivity.processName);
+                s.add("/data/media/0/tencent/MobileQQ/diskcache");
+                s.add("/data/media/0/tencent/MobileQQ/shortvideo");
                 break;
         }
         return s;
@@ -161,7 +136,7 @@ public class ConfigList {
                 FileBackup.createDirectory(f.getAbsolutePath());
             }
         }
-        FileRooter.rollBackChmodFiles(SecondActivity.chmodIntList,SecondActivity.chmodFileList);
+        FileRooter.rollBackChmodFiles(SecondActivity.chmodIntList, SecondActivity.chmodFileList);
         return list;
     }
     /**
@@ -185,6 +160,13 @@ public class ConfigList {
         }
         return list;
     }
+
+    /**
+     * 添加firefox中的.default用户文件
+     * @param list
+     * @param filePath
+     * @return
+     */
     static List<String>addSubFileofFilesInFox(List<String>list,String filePath){
         SecondActivity.chmodFileList.clear();
         SecondActivity.chmodIntList.clear();

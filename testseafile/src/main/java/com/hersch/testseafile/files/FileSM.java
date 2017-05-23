@@ -25,7 +25,7 @@ public class FileSM {
     static Process process = null;
     static DataOutputStream dataOutputStream = null;
     /**
-     * 初始化进程
+     * 初始化命令行进程
      */
     private static void initProcess() {
         if (process == null)

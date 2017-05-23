@@ -126,10 +126,10 @@ public class MainActivity extends AppCompatActivity {
                 case MSG_UNSUCESS_NETWORK:
                     Toast.makeText(MainActivity.this,"无法连接网络，请检查联网",Toast.LENGTH_SHORT).show();
                     btnLogin.setEnabled(false);
-                    btnLogin.setText("已登录");
-                    Intent myIntent = new Intent(MainActivity.this,SecondActivity.class);
-                    startActivity(myIntent);
-                    finish();
+//                    btnLogin.setText("已登录");
+//                    Intent myIntent = new Intent(MainActivity.this,SecondActivity.class);
+//                    startActivity(myIntent);
+//                    finish();
                     break;
             }
         }

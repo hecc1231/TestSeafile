@@ -19,15 +19,11 @@ import android.widget.Toast;
 
 import com.hersch.testseafile.process.CustomProcess;
 import com.hersch.testseafile.R;
-import com.hersch.testseafile.files.ConfigList;
+import com.hersch.testseafile.list.ConfigList;
 import com.hersch.testseafile.files.FileSM;
 import com.hersch.testseafile.net.HttpRequest;
 
 import java.io.File;
-import java.io.UnsupportedEncodingException;
-import java.net.URL;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -43,12 +39,10 @@ public class SecondActivity extends AppCompatActivity {
     static String strCookie = MainActivity.strCookie;
     public final static int MSG_COMPLETE_BACKUP = 0;
     public static int version = 0;//表明当前备份的版本
-    public static int FLAG_BACKUP = 0;//记录是否初次备份(与同步清单有关)
     public final static int MSG_COMPLETE_SYNC = 2;
     public final static int MSG_BACKUP_FILE_INFO = 3;
     public final static int MSG_VERSION_NUM = 4;
     public final static int MSG_NOT_SYNC = 5;
-    public final static int SNAP_VERSION_NUM=5;//历史快照最多保存五份
     public static List<Integer>chmodIntList = new ArrayList<>();
     public static List<String>chmodFileList = new ArrayList<>();
     public static List<String>deleteZipList = new ArrayList<>();
