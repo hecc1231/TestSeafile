@@ -15,10 +15,11 @@
 ##### 2.qq列表
 ###### 1)"/data/data/com.tencent.mm/MobileQQ/databases"            //文字信息与静态表情
 ###### 2)"/data/data/com.tencent.mm/MobileQQ/shared_prefs"         //软件配置信息以及用户登录信息等
-###### 3)"/data/media/0/tencent/MobileQQ/diskcache"                //图片信息
-###### 4)"/data/media/0/tencent/MobileQQ/shortvideo"               //视频信息
-###### 7)"/data/data/com.tencent.mobileqq/files/gm_history"        //聊天记录
-###### 8)"/data/data/com.tencent.mobileqq/files/ConfigStore2.dat"  //与聊天记录相关的记录信息
+###### 3)"/data/data/com.tencent.mobileqq/files/gm_history"        //聊天记录
+###### 4)"/data/data/com.tencent.mobileqq/files/ConfigStore2.dat"  //与聊天记录相关的记录信息
+###### 5)"/data/media/0/tencent/MobileQQ/diskcache"                //图片信息
+###### 6)"/data/media/0/tencent/MobileQQ/shortvideo"               //视频信息
+###### 7)"/data/media/0/tencent/MobileQQ/61747311(用户账号)"       //图片信息
 
 ###### 3.firefox列表
 ###### 1)/data/data/org.mozilla.firefox/files/.default             //用户数据信息包括浏览记录以及书签文件
