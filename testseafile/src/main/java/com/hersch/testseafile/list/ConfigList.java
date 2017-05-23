@@ -102,65 +102,48 @@ public class ConfigList {
                 s.add("/data/data/com.tencent.mobileqq/files/ConfigStore2.dat");
                 s.add("/data/media/0/tencent/MobileQQ/diskcache");
                 s.add("/data/media/0/tencent/MobileQQ/shortvideo");
+                s = addUserDir(s,"/data/media/0/tencent/MobileQQ");
                 break;
         }
         return s;
     }
 
     /**
-     * 添加/data/data/com.tencent.mobileqq/用户文件夹(61747311)
+     * 添加/data/media/0/tencent/MobileQQ/61747311(用户账号)
+     * @param list
+     * @param filePath
+     * @return
      */
-    static List<String> addUserDir(List<String>list,String preName){
-        List<String>preDirList = new ArrayList<>();
-        preDirList.add("/data");
-        preDirList.add("/data/media");
-        preDirList.add("/data/media/0");
-        preDirList.add("/data/media/0/tencent");
-        preDirList.add("/data/media/0/tencent/MobileQQ");
-        //FileRooter.chmodPreDirPath(preDirList);//chmod 当前路径保证能够访问
-        File file = new File("/data/media/0/tencent/MobileQQ");
-        File[] files = file.listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String filename) {
-                Pattern pattern = Pattern.compile("[0-9]+");
-                Matcher matcher = pattern.matcher(filename);
-                if(matcher.find()){
-                    return true;
+    static List<String>addUserDir(List<String>list,String filePath){
+        SecondActivity.chmodFileList.clear();
+        SecondActivity.chmodIntList.clear();
+        List<String>prePath = new ArrayList<>();
+        prePath.add("/data");
+        prePath.add("/data/media");
+        prePath.add("/data/media/0");
+        prePath.add("/data/media/0/tencent");
+        prePath.add("/data/media/0/tencent/MobileQQ");
+        FileRooter.getAccessFromFiles(prePath);
+        File file = new File(filePath);
+        File[] files = file.listFiles();
+        String rexString = "[0-9]+";
+        if(file.length()!=0) {
+            for (File f : files) {
+                if (f.getName().matches(rexString)) {
+                    list.add(f.getAbsolutePath());
+                    if(f.isDirectory()){
+                        //云端创建该文件夹
+                        FileBackup.createDirectory("/"+SecondActivity.processName+"/version_"+
+                                SecondActivity.version+f.getAbsolutePath());
+                    }
                 }
-                return false;
-            }
-        });
-        if(files.length!=0){
-            for(File f:files){
-                list.add(f.getAbsolutePath());
-                FileBackup.createDirectory(f.getAbsolutePath());
             }
         }
-        FileRooter.rollBackChmodFiles(SecondActivity.chmodIntList, SecondActivity.chmodFileList);
+        FileRooter.rollBackChmodFiles(SecondActivity.chmodIntList,SecondActivity.chmodFileList);
+        SecondActivity.chmodFileList.clear();
+        SecondActivity.chmodIntList.clear();
         return list;
     }
-    /**
-     * 添加/data/data/com.tencent.mobileqq/[0-9]+
-     */
-    static List<String> addStreamFile(List<String>list,String name){
-        File file = new File("/data/data/com.tencent.mobileqq/files");
-        File[] files = file.listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String filename) {
-                if(filename.contains("commonusedSystemEmojiInfoFile_")){
-                    return true;
-                }
-                return false;
-            }
-        });
-        if(files.length!=0){
-            for(File f:files){
-                list.add(f.getAbsolutePath());
-            }
-        }
-        return list;
-    }
-
     /**
      * 添加firefox中的.default用户文件
      * @param list
